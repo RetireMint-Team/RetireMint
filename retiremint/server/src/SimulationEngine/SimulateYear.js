@@ -74,7 +74,6 @@ function simulateYear(modelData, investArray, eventsByYear, rebalanceArray, infl
   const rothOptimizerStartYear = simulationSettings.rothOptimizerStartYear;
   const rothOptimizerEndYear = simulationSettings.rothOptimizerEndYear;
 
-  const userState = scenario.stateOfResidence;
   // 1) preliminaries.js
   
   // --- Calculate Adjusted Tax Data using Preliminaries module --- 
@@ -89,7 +88,7 @@ function simulateYear(modelData, investArray, eventsByYear, rebalanceArray, infl
       currentYear, 
       currentYearIndex, 
       currentInflationFactor, 
-      userState
+      modelData  // Pass full modelData, not just userState
   );
 
   // Initialize the state for this year based on the previous state
@@ -156,7 +155,7 @@ function simulateYear(modelData, investArray, eventsByYear, rebalanceArray, infl
           prevYear, 
           prevYearIndex, 
           prevYearInflationFactor, 
-          userState
+          modelData  // Pass full modelData, not just userState
       );
 
       const prevData = previousYearState;

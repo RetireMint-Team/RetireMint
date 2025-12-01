@@ -47,6 +47,7 @@ function mapReturnOrIncome(dist, amtOrPct = 'percent') {
     const investments = yamlData.investments || [];
     const savedInvestments = [];
     let totalInitialCash = 0;
+    const investmentMap = new Map();
   
     // Step 1: Create investment types, skipping "cash"
     for (const type of investmentTypes) {
@@ -92,27 +93,16 @@ function mapReturnOrIncome(dist, amtOrPct = 'percent') {
         throw new Error(`Unknown investmentType name: ${inv.investmentType}`);
       }
   
-      const investmentType = await InvestmentType.findById(typeId);
-      if (!investmentType) throw new Error(`Invalid investmentType ID: ${typeId}`);
-  
-      const isTaxable = investmentType.taxability === 'taxable';
       const taxStatus = inv.taxStatus;
   
-      if (isTaxable && !taxStatus) {
-        throw new Error(`Investment "${inv.id}" is taxable and must include a taxStatus`);
+      const yamlInvestmentName = inv.id;
+      if (!yamlInvestmentName) {
+          console.warn("Investment found in YAML without an 'id' field. Skipping.", inv);
+          continue; // Skip investments without an id/name in YAML
       }
-  
-      if (!isTaxable) {
-        inv.taxStatus = undefined;
-        inv.maxAnnualContribution = undefined;
-      }
-  
-      if (taxStatus === 'after-tax' && inv.maxAnnualContribution == null) {
-        inv.maxAnnualContribution = 0;
-      }
-  
+
       const investmentDoc = new Investment({
-        name: inv.id,
+        name: yamlInvestmentName,
         investmentType: typeId,
         value: inv.value,
         accountTaxStatus: taxStatus,
@@ -121,11 +111,17 @@ function mapReturnOrIncome(dist, amtOrPct = 'percent') {
   
       const savedInvestment = await investmentDoc.save();
       savedInvestments.push(savedInvestment);
+      
+      investmentMap.set(yamlInvestmentName, { 
+          _id: savedInvestment._id, 
+          accountTaxStatus: savedInvestment.accountTaxStatus 
+      });
     }
   
     return {
       investmentIds: savedInvestments.map(inv => inv._id),
-      initialCash: totalInitialCash
+      initialCash: totalInitialCash,
+      investmentMap
     };
   }  
 

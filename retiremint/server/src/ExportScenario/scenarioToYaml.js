@@ -4,7 +4,20 @@ const formatInvestments = require('./helpers/formatInvestments');
 const mapSimulationSettings = require('./helpers/mapSimulationSettings');
 const mapEventSeries = require('./helpers/mapEvent');
 
-function scenarioToYaml(scenario) {
+async function scenarioToYaml(scenario) {
+  // Create a map from Investment DB _id to the YAML name (inv.id)
+  const investmentIdToNameMap = new Map();
+  if (scenario.investments && Array.isArray(scenario.investments)) {
+      scenario.investments.forEach(inv => {
+          if (inv && inv._id && inv.name) { // Ensure we have necessary fields
+             investmentIdToNameMap.set(inv._id.toString(), inv.name);
+          }
+      });
+  }
+
+  // Map events asynchronously
+  const mappedEvents = await mapEventSeries(scenario.events, investmentIdToNameMap);
+
   const result = {
     name: scenario.name,
     maritalStatus: scenario.scenarioType === 'married' ? 'couple' : 'individual',
@@ -20,7 +33,7 @@ function scenarioToYaml(scenario) {
     investmentTypes: formatInvestmentTypes(scenario.investments),
     investments: formatInvestments(scenario.investments),
 
-    eventSeries: mapEventSeries(scenario.events),
+    eventSeries: mappedEvents,
 
     ...mapSimulationSettings(scenario.simulationSettings, scenario.investments),
     financialGoal: scenario.financialGoal,

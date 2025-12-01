@@ -71,7 +71,7 @@ function processDiscretionaryExpenses(
         if (event && event.type === 'expense' && event.expense?.isDiscretionary) {
             const expenseDetails = event.expense;
             const previousState = previousExpenseStates[eventName] || null;
-            const previousBaseAmount = previousState ? previousState.baseAmount : expenseDetails.initialAmount;
+            const previousBaseAmount = previousState ? previousState.baseAmount : expenseDetails.initialAmount; 
             
             // Calculate the current year's uninflated base amount using the utility
             const currentBaseAmount = calculateCurrentBaseAmount(expenseDetails.expectedAnnualChange, previousBaseAmount, prng); // Pass prng

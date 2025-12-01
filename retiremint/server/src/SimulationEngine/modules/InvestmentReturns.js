@@ -115,12 +115,11 @@ function updateInvestmentValue(investment/*, yearState*/) {
 /**
  * Process all investments to update values and track income
  * @param {Function} [prng=Math.random] - Optional seeded random number generator.
- * @param {Object} investmentStrategy - Optional investment strategy object (currently unused in this specific module).
  * @param {Object} yearState - The current state of the simulation year (will be modified).
  * @returns {Object} - Object containing the updated year state and a breakdown of investment income.
  *                     { updatedYearState: Object, investmentIncomeBreakdown: Object }
  */
-function processInvestmentReturns(prng = Math.random, investmentStrategy, yearState) {
+function processInvestmentReturns(prng = Math.random, yearState) {
     
     let totalTaxableIncomeFromInvestments = 0;
     let totalNonTaxableIncomeFromInvestments = 0; // E.g., tax-exempt interest
@@ -148,8 +147,25 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
         if (returnConfig && returnConfig.method) {
             let expectedReturnRate = 0;
             switch (returnConfig.method) {
+                case 'fixedValue':
+                    // Fixed dollar amount return (not percentage)
+                    capitalGrowth = returnConfig.fixedValue ?? 0;
+                    expectedReturnRate = -1; // Flag to skip percentage-based calculation
+                    break;
                 case 'fixedPercentage':
                     expectedReturnRate = (returnConfig.fixedPercentage ?? 0) / 100;
+                    break;
+                case 'normalValue':
+                    // Normal distribution of dollar amounts
+                    const meanReturnVal = returnConfig.normalValue?.mean ?? 0;
+                    const sdReturnVal = returnConfig.normalValue?.sd ?? 0;
+                    if (sdReturnVal < 0) {
+                         console.warn(`Year ${yearState.year}: Negative SD for return on ${investment.name}. Using mean.`);
+                         capitalGrowth = meanReturnVal;
+                    } else {
+                        capitalGrowth = sampleNormal(meanReturnVal, sdReturnVal, prng);
+                    }
+                    expectedReturnRate = -1; // Flag to skip percentage-based calculation
                     break;
                 case 'normalPercentage':
                     const meanReturn = returnConfig.normalPercentage?.mean ?? 0;
@@ -160,6 +176,18 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
                     } else {
                         expectedReturnRate = sampleNormal(meanReturn / 100, sdReturn / 100, prng);
                     }
+                    break;
+                case 'uniformValue':
+                    // Uniform distribution of dollar amounts
+                    const lowerReturnVal = returnConfig.uniformValue?.lowerBound ?? 0;
+                    const upperReturnVal = returnConfig.uniformValue?.upperBound ?? 0;
+                    if (lowerReturnVal > upperReturnVal) {
+                        console.warn(`Year ${yearState.year}: Lower bound > upper bound for return on ${investment.name}. Using lower bound.`);
+                        capitalGrowth = lowerReturnVal;
+                    } else {
+                        capitalGrowth = sampleUniform(lowerReturnVal, upperReturnVal, prng);
+                    }
+                    expectedReturnRate = -1; // Flag to skip percentage-based calculation
                     break;
                 case 'uniformPercentage':
                     const lowerReturn = returnConfig.uniformPercentage?.lowerBound ?? 0;
@@ -175,8 +203,10 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
                     console.warn(`Year ${yearState.year}: Unknown return method ${returnConfig.method} for ${investment.name}. Using 0%.`);
                     expectedReturnRate = 0;
             }
-            // Calculate growth amount based on the *current* value
-            capitalGrowth = currentInvestmentValue * expectedReturnRate;
+            // Calculate growth amount based on the *current* value (only if using percentage)
+            if (expectedReturnRate !== -1) {
+                capitalGrowth = currentInvestmentValue * expectedReturnRate;
+            }
         } else {
             // console.log(`Year ${yearState.year}: No return config found for ${investment.name}. Assuming 0% capital growth.`);
         }
@@ -188,12 +218,23 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
             switch (incomeConfig.method) {
                 case 'fixedValue':
                    // Income is a fixed amount, not a rate based on current value
-                   // We calculate the actual income amount here, not a rate.
                    incomeGenerated = incomeConfig.fixedValue ?? 0;
                    expectedIncomeRate = -1; // Use a flag to skip rate-based calculation below
                    break;
                 case 'fixedPercentage':
                     expectedIncomeRate = (incomeConfig.fixedPercentage ?? 0) / 100;
+                    break;
+                case 'normalValue':
+                    // Normal distribution of dollar amounts for income
+                    const meanIncomeVal = incomeConfig.normalValue?.mean ?? 0;
+                    const sdIncomeVal = incomeConfig.normalValue?.sd ?? 0;
+                    if (sdIncomeVal < 0) {
+                         console.warn(`Year ${yearState.year}: Negative SD for income on ${investment.name}. Using mean.`);
+                         incomeGenerated = meanIncomeVal;
+                    } else {
+                         incomeGenerated = sampleNormal(meanIncomeVal, sdIncomeVal, prng);
+                    }
+                    expectedIncomeRate = -1; // Flag to skip percentage-based calculation
                     break;
                 case 'normalPercentage':
                     const meanIncome = incomeConfig.normalPercentage?.mean ?? 0;
@@ -204,6 +245,18 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
                     } else {
                          expectedIncomeRate = sampleNormal(meanIncome / 100, sdIncome / 100, prng);
                     }
+                    break;
+                case 'uniformValue':
+                    // Uniform distribution of dollar amounts for income
+                    const lowerIncomeVal = incomeConfig.uniformValue?.lowerBound ?? 0;
+                    const upperIncomeVal = incomeConfig.uniformValue?.upperBound ?? 0;
+                    if (lowerIncomeVal > upperIncomeVal) {
+                        console.warn(`Year ${yearState.year}: Lower bound > upper bound for income on ${investment.name}. Using lower bound.`);
+                        incomeGenerated = lowerIncomeVal;
+                    } else {
+                        incomeGenerated = sampleUniform(lowerIncomeVal, upperIncomeVal, prng);
+                    }
+                    expectedIncomeRate = -1; // Flag to skip percentage-based calculation
                     break;
                 case 'uniformPercentage':
                      const lowerIncome = incomeConfig.uniformPercentage?.lowerBound ?? 0;
@@ -220,7 +273,7 @@ function processInvestmentReturns(prng = Math.random, investmentStrategy, yearSt
                     expectedIncomeRate = 0;
             }
             // Calculate income amount based on the *current* value (before growth this year)
-            // Skip if method was 'fixedValue' as incomeGenerated is already set
+            // Skip if method was 'fixedValue', 'normalValue', or 'uniformValue' as incomeGenerated is already set
             if (expectedIncomeRate !== -1) { 
                 incomeGenerated = currentInvestmentValue * expectedIncomeRate;
             }

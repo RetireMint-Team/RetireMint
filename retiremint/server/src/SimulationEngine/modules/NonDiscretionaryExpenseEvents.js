@@ -119,8 +119,8 @@ function calculateCurrentNonDiscExpenses(modelData, eventsActiveThisYear, marita
                 nonDiscExpenseDetails[eventName] = amountToAdd;
             }
 
-            // Store state for next year using the UPDATED currentAmount
-            expenseEventStates[eventStateKey] = { currentAmount }; 
+            // Store state for next year using the UPDATED currentAmount as baseAmount
+            expenseEventStates[eventStateKey] = { baseAmount: currentAmount }; 
             // console.log(`NonDiscExpense Event '${eventName}': Amount=${amountToAdd.toFixed(2)}, NextYearBase=${currentAmount.toFixed(2)}`);
         }
     }

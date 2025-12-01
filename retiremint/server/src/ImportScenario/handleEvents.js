@@ -6,7 +6,8 @@ const Expense = require('../Schemas/Expense');
 const Invest = require('../Schemas/Invest');
 const Rebalance = require('../Schemas/Rebalance');
 const EventSeries = require('../Schemas/EventSeries');
-const buildAllocationFromYaml = require('./buildAllocationFromYaml');
+const Allocation = require('../Schemas/Allocation');
+const { buildAllocationStructure } = require('./buildAllocationFromYaml');
 
 async function mapStart(start) {
   const stdDev = start.stdev ?? start.sd;
@@ -173,41 +174,75 @@ async function mapExpenseEvent(event) {
   return await expenseDoc.save();
 }
 
-async function mapInvestEvent(event, buildAllocationFromYaml) {
-  const {
-    investmentStrategy,
-    finalInvestmentStrategy,
-    allocationDoc // ← comes from calling buildAllocationFromYaml(...)
-  } = await buildAllocationFromYaml(event.assetAllocation, event.assetAllocation2, event.glidePath ?? false);
+async function mapInvestEvent(event, investmentMap) {
+  const nestedInvestmentStrategy = buildAllocationStructure(event.assetAllocation, investmentMap);
+  if (!nestedInvestmentStrategy) {
+    console.warn(`Could not build initial allocation structure for invest event: ${event.name}. Allocation data might be missing or invalid in YAML.`);
+  }
+  
+  let nestedFinalInvestmentStrategy = null;
+  const isGlide = event.glidePath === true;
+  if (isGlide && event.assetAllocation2) {
+      nestedFinalInvestmentStrategy = buildAllocationStructure(event.assetAllocation2, investmentMap);
+      if (!nestedFinalInvestmentStrategy) {
+           console.warn(`Could not build final glide path allocation structure for invest event: ${event.name}.`);
+           nestedFinalInvestmentStrategy = null;
+      }
+  }
 
-  const investDoc = new Invest({
-    allocations: allocationDoc._id,
+  const allocationMethod = isGlide ? 'glidePath' : 'fixedAllocation';
+  const allocationDoc = await new Allocation({ method: allocationMethod }).save();
+  const allocationDocId = allocationDoc._id;
+
+  const investData = {
+    allocations: allocationDocId,
     modifyMaximumCash: event.maxCash != null,
     newMaximumCash: event.maxCash ?? undefined,
-    investmentStrategy,
-    finalInvestmentStrategy
-  });
-
+    ...(nestedInvestmentStrategy && { 
+        taxStatusAllocation: nestedInvestmentStrategy.taxStatusAllocation,
+        preTaxAllocation: nestedInvestmentStrategy.preTaxAllocation,
+        afterTaxAllocation: nestedInvestmentStrategy.afterTaxAllocation,
+        nonRetirementAllocation: nestedInvestmentStrategy.nonRetirementAllocation,
+        taxExemptAllocation: nestedInvestmentStrategy.taxExemptAllocation
+    }),
+    ...(isGlide && nestedFinalInvestmentStrategy && {
+        finalTaxStatusAllocation: nestedFinalInvestmentStrategy.taxStatusAllocation,
+        finalPreTaxAllocation: nestedFinalInvestmentStrategy.preTaxAllocation,
+        finalAfterTaxAllocation: nestedFinalInvestmentStrategy.afterTaxAllocation,
+        finalNonRetirementAllocation: nestedFinalInvestmentStrategy.nonRetirementAllocation,
+        finalTaxExemptAllocation: nestedFinalInvestmentStrategy.taxExemptAllocation
+    })
+  };
+  
+  const investDoc = new Invest(investData);
   return await investDoc.save();
 }
 
-async function mapRebalanceEvent(event, buildAllocationFromYaml) {
-  const {
-    rebalanceStrategy,
-    finalRebalanceStrategy,
-    allocationDoc
-  } = await buildAllocationFromYaml(event.assetAllocation, null, false);
+async function mapRebalanceEvent(event, investmentMap) {
+  const nestedRebalanceStrategy = buildAllocationStructure(event.assetAllocation, investmentMap);
+  if (!nestedRebalanceStrategy) {
+    console.warn(`Could not build allocation structure for rebalance event: ${event.name}. Allocation data might be missing or invalid in YAML.`);
+  }
 
-  const rebalanceDoc = new Rebalance({
-    allocations: allocationDoc._id,
-    rebalanceStrategy,
-    finalRebalanceStrategy
-  });
+  const allocationDoc = await new Allocation({ method: 'fixedAllocation' }).save();
+  const allocationDocId = allocationDoc._id;
 
+  const rebalanceData = {
+    allocations: allocationDocId,
+    ...(nestedRebalanceStrategy && { 
+        taxStatusAllocation: nestedRebalanceStrategy.taxStatusAllocation,
+        preTaxAllocation: nestedRebalanceStrategy.preTaxAllocation,
+        afterTaxAllocation: nestedRebalanceStrategy.afterTaxAllocation,
+        nonRetirementAllocation: nestedRebalanceStrategy.nonRetirementAllocation,
+        taxExemptAllocation: nestedRebalanceStrategy.taxExemptAllocation
+    })
+  };
+
+  const rebalanceDoc = new Rebalance(rebalanceData);
   return await rebalanceDoc.save();
 }
 
-async function createEvent(event, buildAllocationFromYaml) {
+async function createEvent(event, investmentMap) {
   const start = await mapStart(event.start);
   const duration = await mapDuration(event.duration);
 
@@ -216,6 +251,7 @@ async function createEvent(event, buildAllocationFromYaml) {
   let investId = null;
   let rebalanceId = null;
 
+  try {
   switch (event.type) {
     case 'income':
       incomeId = (await mapIncomeEvent(event))._id;
@@ -224,13 +260,18 @@ async function createEvent(event, buildAllocationFromYaml) {
       expenseId = (await mapExpenseEvent(event))._id;
       break;
     case 'invest':
-      investId = (await mapInvestEvent(event, buildAllocationFromYaml))._id;
+        investId = (await mapInvestEvent(event, investmentMap))._id;
       break;
     case 'rebalance':
-      rebalanceId = (await mapRebalanceEvent(event, buildAllocationFromYaml))._id;
+        rebalanceId = (await mapRebalanceEvent(event, investmentMap))._id;
       break;
     default:
-      throw new Error(`Unknown event type: ${event.type}`);
+        console.warn(`Unknown event type during import: ${event.type} for event named "${event.name}". Skipping.`);
+        return null;
+    }
+  } catch (mappingError) {
+       console.error(`Error mapping event "${event.name}" (type: ${event.type}):`, mappingError);
+       return null;
   }
 
   const eventDoc = new EventSeries({
@@ -248,12 +289,27 @@ async function createEvent(event, buildAllocationFromYaml) {
   return await eventDoc.save();
 }
 
-async function handleEvents(parsedData) {
+async function handleEvents(parsedData, investmentMap) {
   const savedEventIds = [];
 
-  for (const event of parsedData.eventSeries || []) {
-    const savedEvent = await createEvent(event, buildAllocationFromYaml);
+  if (!parsedData.eventSeries || !Array.isArray(parsedData.eventSeries)) {
+      console.warn("No eventSeries array found in parsed YAML data.");
+      return savedEventIds;
+  }
+
+  for (const event of parsedData.eventSeries) {
+    if (!event || !event.type) {
+        console.warn("Skipping invalid event object in eventSeries:", event);
+        continue;
+    }
+    try {
+        const savedEvent = await createEvent(event, investmentMap);
+        if (savedEvent) {
     savedEventIds.push(savedEvent._id);
+        }
+    } catch (error) {
+        console.error(`Failed to create or save event "${event.name}":`, error);
+    }
   }
 
   return savedEventIds;

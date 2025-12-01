@@ -218,7 +218,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
                         <input
                             type="number"
                             placeholder="Expense Ratio"
-                            value={investmentType.expenseRatio || ''}
+                            value={investmentType.expenseRatio ?? ''}
                             onChange={(e) => updateInvestmentType(index, ['expenseRatio'], e.target.value)}
                         />
                     </div>

@@ -20,6 +20,7 @@
  * @param {Number} rothOptimizerStartYear - Year to start optimizing Roth conversions
  * @param {Number} rothOptimizerEndYear - Year to end optimizing Roth conversions
  * @param {Array} currentYearEventsLog - Array to push log entries into.
+ * @param {Function} [prng=Math.random] - Optional seeded random number generator (unused in Roth, but accepted for consistency).
  * @returns {Object} - An object containing the updated investments array, the updated taxable income, and the amount converted.
  *                     { investments: Array, curYearIncome: Number, conversionAmount: Number }
  */
@@ -34,7 +35,8 @@ function processRothConversion(
   rothOptimizerEnable = false,
   rothOptimizerStartYear = null,
   rothOptimizerEndYear = null,
-  currentYearEventsLog = []
+  currentYearEventsLog = [],
+  prng = Math.random
 ) {
   // console.log(`---> [Roth] Entering for Year ${currentYear}`);
   let totalAmountConverted = 0;

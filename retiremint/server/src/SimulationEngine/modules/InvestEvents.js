@@ -7,14 +7,15 @@
  * Handles contribution limits for after-tax retirement accounts.
  * MUTATES the yearState object directly.
  * 
+ * @param {Array} currentYearEventsLog - Array to push log entries into.
  * @param {Object | null} currentInvestStrategyInfo - Strategy info for the current year, or null.
  * @param {Object} yearState - The current year's state object (will be modified).
  * @param {Number} currentInflationFactor - Inflation factor for the year.
  * @param {Object} modelData - Full model data for accessing investment type definitions.
- * @param {Array} currentYearEventsLog - Array to push log entries into.
+ * @param {Function} [prng=Math.random] - Optional seeded random number generator (unused here, but accepted for consistency).
  * @returns {Object} - The potentially modified yearState object.
  */
-function processInvestEvents(currentYearEventsLog, currentInvestStrategyInfo, yearState, currentInflationFactor, modelData) {
+function processInvestEvents(currentYearEventsLog, currentInvestStrategyInfo, yearState, currentInflationFactor, modelData, prng = Math.random) {
     
     if (!currentInvestStrategyInfo || !currentInvestStrategyInfo.strategy) {
         // console.log(`Year ${yearState.year}: No investment strategy active.`);

@@ -54,12 +54,12 @@ exports.importScenario = async (req, res) => {
     scenarioData.simulationSettings = simulationSettingsDoc._id;
 
     // Step 4: Handle investments
-    const { investmentIds, initialCash } = await handleInvestments(parsedData, userId);
+    const { investmentIds, initialCash, investmentMap } = await handleInvestments(parsedData, userId);
     scenarioData.investments = investmentIds;
     scenarioData.initialCash = initialCash;
 
     // Step 5: Handle events
-    const eventIds = await handleEvents(parsedData); // internally uses mapStart, mapIncomeEvent, etc.
+    const eventIds = await handleEvents(parsedData, investmentMap);
     scenarioData.events = eventIds;       
 
     // Step 5: Save scenario

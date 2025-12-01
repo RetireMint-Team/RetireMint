@@ -157,6 +157,7 @@ function runOneSimulation(modelData, simulationIndex) {
     let userTargetAge = 0; 
     let spouseTargetAge = Infinity; // Default to infinite if single or missing data
     let seededRNG = null; // Initialize seeded RNG to null
+    let prng = Math.random; // Initialize prng early with default (before try block)
 
     let previousYearState = null; 
     const financialEventsLog = []; // <-- Initialize aggregated log array
@@ -174,11 +175,9 @@ function runOneSimulation(modelData, simulationIndex) {
         if (scenario.seed !== undefined && scenario.seed !== null && Number.isInteger(scenario.seed)) {
             console.log(`---> [Sim #${simulationIndex + 1}] Using provided seed: ${scenario.seed}`);
             seededRNG = mulberry32(scenario.seed); // Create the RNG function
-        } else {
-            // console.log(`---> [Sim #${simulationIndex + 1}] No seed provided, using Math.random.`);
-            seededRNG = Math.random; // Default to Math.random if no valid seed
+            prng = seededRNG; // Update prng with seeded version
         }
-        const prng = seededRNG; // Use a shorter name for passing down
+        // If no seed, prng remains Math.random (already set above)
 
         // Log if Roth Optimizer is disabled - MOVED TO HERE
         if (!scenario.simulationSettings.rothOptimizerEnable) {
@@ -348,9 +347,22 @@ function runOneSimulation(modelData, simulationIndex) {
         });
     } catch (error) {
         console.error(`Simulation ${simulationIndex + 1}: Failed to calculate event timings: ${error.message}`);
-        // Handle the error appropriately - maybe stop the simulation or proceed with no events?
-        // For now, just log and potentially clear eventsByYear if calculation failed mid-way
-        for(let i=0; i<eventsByYear.length; i++) { eventsByYear[i] = []; } // Clear partially filled events
+        // Return early with an error result - cannot proceed without valid event timings
+        // This prevents cascading errors from corrupted state
+        return {
+            yearlyResults: [{ netWorth: 0, meetingFinancialGoal: false }],
+            cashArray: [0],
+            investmentsValueArray: [{ error: `Event timing calculation failed: ${error.message}` }],
+            expensesArray: [{}],
+            earlyWithdrawalArray: [0],
+            incomeArrays: [{}],
+            discretionaryRatioArray: [0],
+            financialEventsLog: [{ 
+                year: currentYear, 
+                type: 'error', 
+                details: `Simulation failed: ${error.message}. Check that all referenced events exist.` 
+            }]
+        };
     }
     
     // Print events by year
@@ -681,8 +693,10 @@ function runOneSimulation(modelData, simulationIndex) {
     const incomeArrays = Array(numYears).fill({}); // NEW: Initialize array for income breakdowns
     const discretionaryRatioArray = Array(numYears).fill(0); // NEW: Initialize array for ratios
     
+    let lastYearIndex = 0; // Track the last year index for error handling
     try {
         for (let i = 0; i < numYears; i++) {
+            lastYearIndex = i; // Update before each iteration
             const currentState = simulateYear( 
                 modelData,          // Pass the full model data
                 investArray,        // Pass the pre-calculated array
@@ -732,17 +746,17 @@ function runOneSimulation(modelData, simulationIndex) {
 
         }
     } catch (yearError) {
-        console.error(`Simulation ${simulationIndex + 1}: Error calling simulateYear for year index ${i} (${currentYear + i}):`, yearError);
+        console.error(`Simulation ${simulationIndex + 1}: Error calling simulateYear for year index ${lastYearIndex} (${currentYear + lastYearIndex}):`, yearError);
         yearlyResults.push({ 
              netWorth: previousYearState?.totalAssets ?? 0, 
              meetingFinancialGoal: false 
          });
          
-         cashArray[i] = previousYearState?.cash ?? 0; 
+         cashArray[lastYearIndex] = previousYearState?.cash ?? 0; 
          // Store error indication or empty object for investment values
-         investmentsValueArray[i] = { error: `Simulation failed in year ${currentYear + i}` }; 
-         expensesArray[i] = { error: `Simulation failed in year ${currentYear + i}` }; 
-         earlyWithdrawalArray[i] = previousYearState?.curYearEarlyWithdrawals ?? 0; 
+         investmentsValueArray[lastYearIndex] = { error: `Simulation failed in year ${currentYear + lastYearIndex}` }; 
+         expensesArray[lastYearIndex] = { error: `Simulation failed in year ${currentYear + lastYearIndex}` }; 
+         earlyWithdrawalArray[lastYearIndex] = previousYearState?.curYearEarlyWithdrawals ?? 0; 
     }
     // --- End Yearly Simulation Loop ---
     

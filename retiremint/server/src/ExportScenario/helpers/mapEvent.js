@@ -1,3 +1,5 @@
+const { flattenAllocationStructure } = require('./flattenAllocationStructure');
+
 function formatStart(start) {
     if (!start) return null;
     switch (start.method) {
@@ -30,8 +32,9 @@ function formatStart(start) {
     }
   }
   
-  function mapEventSeries(events) {
-    return events.map(e => {
+  async function mapEventSeries(events, investmentIdToNameMap) {
+    const mappedEvents = [];
+    for (const e of events) {
       const base = {
         name: e.name,
         start: formatStart(e.startYear),
@@ -41,36 +44,79 @@ function formatStart(start) {
   
       if (e.type === 'income' && e.income) {
         base.initialAmount = e.income.initialAmount;
-        base.changeAmtOrPct = 'amount';
-        base.changeDistribution = formatExpectedChange(e.income.expectedAnnualChange);
+        if (e.income.expectedAnnualChange) {
+           base.changeDistribution = formatExpectedChange(e.income.expectedAnnualChange);
+           const method = e.income.expectedAnnualChange.method;
+           if (method.includes('Value')) base.changeAmtOrPct = 'amount';
+           else if (method.includes('Percentage')) base.changeAmtOrPct = 'percent';
+           else base.changeAmtOrPct = 'percent';
+        } else {
+            base.changeAmtOrPct = 'percent';
+        }
         base.inflationAdjusted = e.income.inflationAdjustment;
-        base.userFraction = e.income.marriedPercentage ?? 1.0;
+        base.userFraction = (e.income.marriedPercentage ?? 100) / 100;
         base.socialSecurity = e.income.isSocialSecurity;
       }
   
       if (e.type === 'expense' && e.expense) {
         base.initialAmount = e.expense.initialAmount;
-        base.changeAmtOrPct = 'percent';
-        base.changeDistribution = formatExpectedChange(e.expense.expectedAnnualChange);
-        base.inflationAdjusted = e.expense.inflationAdjustment;
-        base.userFraction = e.expense.marriedPercentage ?? 1.0;
-        base.discretionary = e.expense.isDiscretionary;
+        if (e.expense.expectedAnnualChange) {
+             base.changeDistribution = formatExpectedChange(e.expense.expectedAnnualChange);
+             const method = e.expense.expectedAnnualChange.method;
+             if (method.includes('Value')) base.changeAmtOrPct = 'amount';
+             else if (method.includes('Percentage')) base.changeAmtOrPct = 'percent';
+             else base.changeAmtOrPct = 'percent';
+         } else {
+             base.changeAmtOrPct = 'percent';
+         }
+         base.inflationAdjusted = e.expense.inflationAdjustment;
+         base.userFraction = (e.expense.marriedPercentage ?? 100) / 100;
+         base.discretionary = e.expense.isDiscretionary;
       }
   
       if (e.type === 'invest' && e.invest) {
-        base.assetAllocation = e.invest.investmentStrategy?.nonRetirementAllocation || {};
-        base.glidePath = e.invest.modifyMaximumCash || false;
-        base.assetAllocation2 = e.invest.finalInvestmentStrategy?.nonRetirementAllocation || {};
-        base.maxCash = e.invest.newMaximumCash ?? 0;
+        const flatAllocation = await flattenAllocationStructure(e.invest, investmentIdToNameMap);
+        if (flatAllocation) {
+            base.assetAllocation = flatAllocation;
+        }
+        
+        base.glidePath = e.invest.modifyMaximumCash === true; 
+        
+        if (base.glidePath) {
+             const finalNested = {
+                 taxStatusAllocation: e.invest.finalTaxStatusAllocation,
+                 nonRetirementAllocation: e.invest.finalNonRetirementAllocation,
+                 preTaxAllocation: e.invest.finalPreTaxAllocation,
+                 afterTaxAllocation: e.invest.finalAfterTaxAllocation,
+                 taxExemptAllocation: e.invest.finalTaxExemptAllocation
+             };
+             const hasFinalAllocationData = Object.values(finalNested).some(alloc => alloc && Object.keys(alloc).length > 0);
+             if (hasFinalAllocationData) {
+                 const flatAllocation2 = await flattenAllocationStructure(finalNested, investmentIdToNameMap);
+                 if (flatAllocation2) {
+                     base.assetAllocation2 = flatAllocation2;
+                 }
+             } else {
+                  delete base.assetAllocation2; 
+             }
+        } else {
+             delete base.assetAllocation2;
+        }
+        
+        base.maxCash = e.invest.newMaximumCash ?? null;
       }
   
       if (e.type === 'rebalance' && e.rebalance) {
-        base.assetAllocation = e.rebalance.rebalanceStrategy?.nonRetirementAllocation || {};
+         const flatAllocation = await flattenAllocationStructure(e.rebalance, investmentIdToNameMap);
+         if (flatAllocation) {
+            base.assetAllocation = flatAllocation;
+         }
       }
   
-      return base;
-    });
-  }  
+      mappedEvents.push(base);
+    }
+    return mappedEvents; 
+  }
   
   module.exports = mapEventSeries;
   

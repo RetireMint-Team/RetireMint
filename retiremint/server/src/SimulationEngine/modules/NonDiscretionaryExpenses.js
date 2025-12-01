@@ -11,9 +11,10 @@ const { performWithdrawal } = require('../Utils/WithdrawalUtils'); // Import the
  * @param {Object} yearState - The current state object for the year.
  * @param {Array<string>} withdrawalStrategy - Ordered list of investment names to withdraw from.
  * @param {number|null} userAge - User's age for checking early withdrawal penalty.
+ * @param {Function} [prng=Math.random] - Optional seeded random number generator (unused here, but accepted for consistency).
  * @returns {Object} - The updated yearState object.
  */
-function processNonDiscretionaryExpenses(totalPaymentNeeded, yearState, withdrawalStrategy, userAge) {
+function processNonDiscretionaryExpenses(totalPaymentNeeded, yearState, withdrawalStrategy, userAge, prng = Math.random) {
     
     // console.log(`Year ${yearState.year}: Starting Non-Discretionary Payments. Need: ${totalPaymentNeeded.toFixed(2)}`);
 

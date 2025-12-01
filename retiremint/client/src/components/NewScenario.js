@@ -222,12 +222,12 @@ function NewScenario() {
                     // User
                     if (response.data.lifeExpectancy) {
                         const le = response.data.lifeExpectancy;
-                        setLifeExpectancyMethod(le.lifeExpectancyMethod || '');
+                        setLifeExpectancyMethod(le.lifeExpectancyMethod ?? '');
                         if (le.lifeExpectancyMethod === 'fixedValue') {
-                            setFixedValue(le.fixedValue || '');
+                            setFixedValue(le.fixedValue ?? '');
                         } else if (le.lifeExpectancyMethod === 'normalDistribution') {
-                            setMean(le.normalDistribution?.mean || ''); // Correct state setter
-                            setStandardDeviation(le.normalDistribution?.standardDeviation || ''); // Correct state setter
+                            setMean(le.normalDistribution?.mean ?? '');
+                            setStandardDeviation(le.normalDistribution?.standardDeviation ?? '');
                         }
                     } else {
                          console.warn('User life expectancy data missing from scenario.');
@@ -241,12 +241,12 @@ function NewScenario() {
                     // Spouse
                     if (response.data.scenarioType === 'married' && response.data.spouseLifeExpectancy) {
                         const sle = response.data.spouseLifeExpectancy;
-                        setSpouseLifeExpectancyMethod(sle.lifeExpectancyMethod || '');
+                        setSpouseLifeExpectancyMethod(sle.lifeExpectancyMethod ?? '');
                         if (sle.lifeExpectancyMethod === 'fixedValue') {
-                            setSpouseFixedValue(sle.fixedValue || ''); // Correct state setter
+                            setSpouseFixedValue(sle.fixedValue ?? '');
                         } else if (sle.lifeExpectancyMethod === 'normalDistribution') {
-                            setSpouseMean(sle.normalDistribution?.mean || ''); // Correct state setter
-                            setSpouseStandardDeviation(sle.normalDistribution?.standardDeviation || ''); // Correct state setter
+                            setSpouseMean(sle.normalDistribution?.mean ?? '');
+                            setSpouseStandardDeviation(sle.normalDistribution?.standardDeviation ?? '');
                         }
                     } else {
                          // Reset spouse life expectancy state if not married or data missing
@@ -302,27 +302,27 @@ function NewScenario() {
                             setRothOptimizerEnable(settings.rothOptimizerEnable);
                             
                             if (settings.rothOptimizerEnable) {
-                                setRothRptimizerStartYear(settings.rothOptimizerStartYear || '');
-                                setRothOptimizerEndYear(settings.rothOptimizerEndYear || '');
+                                setRothRptimizerStartYear(settings.rothOptimizerStartYear ?? '');
+                                setRothOptimizerEndYear(settings.rothOptimizerEndYear ?? '');
                             }
                         }
                         
                         // Load inflation assumption data
                         if (settings.inflationAssumption) {
                             const inflation = settings.inflationAssumption;
-                            setInflationMethod(inflation.method || '');
+                            setInflationMethod(inflation.method ?? '');
                             
                             switch (inflation.method) {
                                 case 'fixedPercentage':
-                                    setFixedPercentage(inflation.fixedPercentage || '');
+                                    setFixedPercentage(inflation.fixedPercentage ?? '');
                                     break;
                                 case 'normalPercentage':
-                                    setNormalMean(inflation.normalPercentage?.mean || '');
-                                    setNormalSd(inflation.normalPercentage?.sd || '');
+                                    setNormalMean(inflation.normalPercentage?.mean ?? '');
+                                    setNormalSd(inflation.normalPercentage?.sd ?? '');
                                     break;
                                 case 'uniformPercentage':
-                                    setUniformLower(inflation.uniformPercentage?.lowerBound || '');
-                                    setUniformUpper(inflation.uniformPercentage?.upperBound || '');
+                                    setUniformLower(inflation.uniformPercentage?.lowerBound ?? '');
+                                    setUniformUpper(inflation.uniformPercentage?.upperBound ?? '');
                                     break;
                                 default:
                                     // Clear other fields if method is unknown or not set
@@ -449,6 +449,50 @@ function NewScenario() {
             alert('Error: ' + (error.response?.data?.error || error.message || 'Unknown error'));
         }
     };
+
+    // Sync investmentTypes changes to investments
+    // When an investmentType is modified, update all investments that use that type
+    useEffect(() => {
+        if (investmentTypes.length === 0 || investments.length === 0) return;
+        
+        setInvestments(prevInvestments => {
+            let hasChanges = false;
+            const updatedInvestments = prevInvestments.map(investment => {
+                // Find the matching investmentType by name
+                const matchingType = investmentTypes.find(type => type.name === investment.investmentType.name);
+                
+                if (matchingType) {
+                    // Check if anything actually changed to avoid infinite loops
+                    const currentType = investment.investmentType;
+                    const needsUpdate = 
+                        currentType.description !== matchingType.description ||
+                        currentType.expenseRatio !== matchingType.expenseRatio ||
+                        currentType.taxability !== matchingType.taxability ||
+                        JSON.stringify(currentType.expectedReturn) !== JSON.stringify(matchingType.expectedReturn) ||
+                        JSON.stringify(currentType.expectedIncome) !== JSON.stringify(matchingType.expectedIncome);
+                    
+                    if (needsUpdate) {
+                        hasChanges = true;
+                        return {
+                            ...investment,
+                            investmentType: {
+                                ...investment.investmentType,
+                                description: matchingType.description,
+                                expenseRatio: matchingType.expenseRatio,
+                                taxability: matchingType.taxability,
+                                expectedReturn: { ...matchingType.expectedReturn },
+                                expectedIncome: { ...matchingType.expectedIncome }
+                            }
+                        };
+                    }
+                }
+                return investment;
+            });
+            
+            // Only update state if there were actual changes
+            return hasChanges ? updatedInvestments : prevInvestments;
+        });
+    }, [investmentTypes]); // Only run when investmentTypes changes
 
     // Log investments for debugging
     useEffect(() => {
@@ -1133,19 +1177,21 @@ function NewScenario() {
 
                                 switch (inflationMethod) {
                                     case 'fixedPercentage':
-                                        if (!fixedPercentage) {
+                                        if (fixedPercentage === '' || fixedPercentage === null || fixedPercentage === undefined) {
                                             alert("Please enter a Fixed Percentage.");
                                             return;
                                         }
                                         break;
                                     case 'normalPercentage':
-                                        if (!normalMean || !normalSd) {
+                                        if (normalMean === '' || normalMean === null || normalMean === undefined ||
+                                            normalSd === '' || normalSd === null || normalSd === undefined) {
                                             alert("Please enter both Mean and Standard Deviation for Normal Percentage.");
                                             return;
                                         }
                                         break;
                                     case 'uniformPercentage':
-                                        if (!uniformLower || !uniformUpper) {
+                                        if (uniformLower === '' || uniformLower === null || uniformLower === undefined ||
+                                            uniformUpper === '' || uniformUpper === null || uniformUpper === undefined) {
                                             alert("Please enter both Lower and Upper Bound for Uniform Percentage.");
                                             return;
                                         }
@@ -1194,7 +1240,7 @@ function NewScenario() {
                                 }
 
                                 // Validate Required Fields
-                                if (!financialGoal) {
+                                if (financialGoal === '' || financialGoal === null || financialGoal === undefined) {
                                     alert("Financial Goal is required.");
                                     return;
                                 }
@@ -1291,7 +1337,7 @@ function convertInvestmentFormat(dbInvestments) {
                     fixedPercentage: dbInvestments[i].investmentType.expectedAnnualIncome?.fixedPercentage ?? '', 
                     normalValue: {
                         mean: dbInvestments[i].investmentType.expectedAnnualIncome?.normalValue?.mean ?? '',
-                        sd: dbInvestments[i].investmentType.expectedAnnualincome?.normalValue?.sd ?? ''
+                        sd: dbInvestments[i].investmentType.expectedAnnualIncome?.normalValue?.sd ?? ''
                     },
                     normalPercentage: {
                         mean: dbInvestments[i].investmentType.expectedAnnualIncome?.normalPercentage?.mean ?? '',

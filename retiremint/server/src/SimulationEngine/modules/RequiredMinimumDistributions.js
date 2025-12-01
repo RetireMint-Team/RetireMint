@@ -49,10 +49,11 @@ function findOrCreateTargetAccount(investments, sourceInvestment, targetTaxStatu
  * @param {Object} yearState - The current state of the simulation year (will be modified).
  * @param {Object} previousYearState - State object from the previous year's simulation (optional, for initial RMD)
  * @param {Array} currentYearEventsLog - Array to push log entries into.
+ * @param {Function} [prng=Math.random] - Optional seeded random number generator (unused in RMD, but accepted for consistency).
  * @returns {Object} - Object containing the updated year state and the total RMD income generated.
  *                     { updatedYearState: Object, rmdIncome: Number }
  */
-function processRequiredMinimumDistributions(rmdStrategies, rmdTables, userAge, yearState, previousYearState = null, currentYearEventsLog = []) {
+function processRequiredMinimumDistributions(rmdStrategies, rmdTables, userAge, yearState, previousYearState = null, currentYearEventsLog = [], prng = Math.random) {
     
     // --- Basic Validation & Age Check (Moved to the beginning) ---
     if (!userAge || userAge < 73) {

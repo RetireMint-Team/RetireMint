@@ -389,49 +389,139 @@ app.post('/scenario', async (req, res) => {
     
     const investmentIds = await Promise.all(investments.map(async inv => {
 
-        // Step 1 & 2: Find or Create ExpectedReturn for Annual Return and Income
+        // Step 1: Check if InvestmentType already exists
+        let investmentType = await InvestmentType.findOne({ name: inv.investmentType.name });
+        
+        // Prepare the data for ExpectedReturn documents
         const returnData = {
             method: inv.investmentType.expectedReturn.returnType,
-            fixedValue: inv.investmentType.expectedReturn.returnType === 'fixedValue' ? inv.investmentType.expectedReturn.fixedValue : null,
-            fixedPercentage: inv.investmentType.expectedReturn.returnType === 'fixedPercentage' ? inv.investmentType.expectedReturn.fixedPercentage : null,
-            normalValue: inv.investmentType.expectedReturn.returnType === 'normalValue' ? inv.investmentType.expectedReturn.normalValue : null,
-            normalPercentage: inv.investmentType.expectedReturn.returnType === 'normalPercentage' ? inv.investmentType.expectedReturn.normalPercentage : null,
+            fixedValue: inv.investmentType.expectedReturn.returnType === 'fixedValue' 
+                ? inv.investmentType.expectedReturn.fixedValue 
+                : null,
+            fixedPercentage: inv.investmentType.expectedReturn.returnType === 'fixedPercentage' 
+                ? inv.investmentType.expectedReturn.fixedPercentage 
+                : null,
+            normalValue: inv.investmentType.expectedReturn.returnType === 'normalValue' 
+                ? { 
+                    mean: inv.investmentType.expectedReturn.normalValue?.mean ?? null, 
+                    sd: inv.investmentType.expectedReturn.normalValue?.sd ?? null 
+                  } 
+                : null,
+            normalPercentage: inv.investmentType.expectedReturn.returnType === 'normalPercentage' 
+                ? { 
+                    mean: inv.investmentType.expectedReturn.normalPercentage?.mean ?? null, 
+                    sd: inv.investmentType.expectedReturn.normalPercentage?.sd ?? null 
+                  } 
+                : null,
         };
-        const expectedReturn = await ExpectedReturn.findOneAndUpdate(
-            // Find criteria (adjust if needed, e.g., based on method and values)
-            { method: returnData.method, /* add other unique fields if necessary */ }, 
-            returnData, 
-            { new: true, upsert: true, setDefaultsOnInsert: true } 
-        );
 
         const incomeData = {
             method: inv.investmentType.expectedIncome.returnType,
-            fixedValue: inv.investmentType.expectedIncome.returnType === 'fixedValue' ? inv.investmentType.expectedIncome.fixedValue : null,
-            fixedPercentage: inv.investmentType.expectedIncome.returnType === 'fixedPercentage' ? inv.investmentType.expectedIncome.fixedPercentage : null,
-            normalValue: inv.investmentType.expectedIncome.returnType === 'normalValue' ? inv.investmentType.expectedIncome.normalValue : null,
-            normalPercentage: inv.investmentType.expectedIncome.returnType === 'normalPercentage' ? inv.investmentType.expectedIncome.normalPercentage : null,
+            fixedValue: inv.investmentType.expectedIncome.returnType === 'fixedValue' 
+                ? inv.investmentType.expectedIncome.fixedValue 
+                : null,
+            fixedPercentage: inv.investmentType.expectedIncome.returnType === 'fixedPercentage' 
+                ? inv.investmentType.expectedIncome.fixedPercentage 
+                : null,
+            normalValue: inv.investmentType.expectedIncome.returnType === 'normalValue' 
+                ? { 
+                    mean: inv.investmentType.expectedIncome.normalValue?.mean ?? null, 
+                    sd: inv.investmentType.expectedIncome.normalValue?.sd ?? null 
+                  } 
+                : null,
+            normalPercentage: inv.investmentType.expectedIncome.returnType === 'normalPercentage' 
+                ? { 
+                    mean: inv.investmentType.expectedIncome.normalPercentage?.mean ?? null, 
+                    sd: inv.investmentType.expectedIncome.normalPercentage?.sd ?? null 
+                  } 
+                : null,
         };
-        const expectedIncome = await ExpectedReturn.findOneAndUpdate(
-             // Find criteria (adjust if needed)
-            { method: incomeData.method, /* add other unique fields if necessary */ },
-            incomeData, 
-            { new: true, upsert: true, setDefaultsOnInsert: true } 
-        );
 
-        // Step 3: Find or Create InvestmentType
-        const investmentTypeData = {
-            name: inv.investmentType.name,
-            description: inv.investmentType.description,
-            expectedAnnualReturn: expectedReturn._id,
-            expectedAnnualIncome: expectedIncome._id,
-            expenseRatio: inv.investmentType.expenseRatio,
-            taxability: inv.investmentType.taxability
-        };
-        const investmentType = await InvestmentType.findOneAndUpdate(
-            { name: inv.investmentType.name }, // Find by unique name
-            investmentTypeData,
-            { new: true, upsert: true, setDefaultsOnInsert: true }
-        );
+        let expectedReturn, expectedIncome;
+        
+        if (investmentType) {
+            // InvestmentType exists - check if its ExpectedReturn documents are shared with other types
+            // We need to check BOTH same-field sharing AND cross-field sharing
+            // This is a safety check to fix any corrupted data from previous bugs
+            
+            const returnDocId = investmentType.expectedAnnualReturn;
+            const incomeDocId = investmentType.expectedAnnualIncome;
+            
+            // Check if returnDocId is used by ANY other InvestmentType (in either field)
+            const returnUsedByOtherAsReturn = await InvestmentType.countDocuments({ 
+                expectedAnnualReturn: returnDocId,
+                _id: { $ne: investmentType._id }
+            });
+            const returnUsedByOtherAsIncome = await InvestmentType.countDocuments({ 
+                expectedAnnualIncome: returnDocId,
+                _id: { $ne: investmentType._id }
+            });
+            const returnIsShared = returnUsedByOtherAsReturn > 0 || returnUsedByOtherAsIncome > 0;
+            
+            // Check if incomeDocId is used by ANY other InvestmentType (in either field)
+            const incomeUsedByOtherAsReturn = await InvestmentType.countDocuments({ 
+                expectedAnnualReturn: incomeDocId,
+                _id: { $ne: investmentType._id }
+            });
+            const incomeUsedByOtherAsIncome = await InvestmentType.countDocuments({ 
+                expectedAnnualIncome: incomeDocId,
+                _id: { $ne: investmentType._id }
+            });
+            const incomeIsShared = incomeUsedByOtherAsReturn > 0 || incomeUsedByOtherAsIncome > 0;
+            
+            // Also check if return and income point to the SAME document (self-sharing)
+            const selfSharing = returnDocId && incomeDocId && returnDocId.toString() === incomeDocId.toString();
+            
+            if (returnIsShared || selfSharing) {
+                // This ExpectedReturn is shared - create a new unique one for this InvestmentType
+                expectedReturn = await new ExpectedReturn(returnData).save();
+            } else {
+                // Safe to update - only this InvestmentType uses it
+                expectedReturn = await ExpectedReturn.findByIdAndUpdate(
+                    returnDocId,
+                    returnData,
+                    { new: true }
+                );
+            }
+            
+            if (incomeIsShared || selfSharing) {
+                // This ExpectedReturn is shared - create a new unique one for this InvestmentType
+                expectedIncome = await new ExpectedReturn(incomeData).save();
+            } else {
+                // Safe to update - only this InvestmentType uses it
+                expectedIncome = await ExpectedReturn.findByIdAndUpdate(
+                    incomeDocId,
+                    incomeData,
+                    { new: true }
+                );
+            }
+            
+            // Update the InvestmentType with potentially new ExpectedReturn references
+            investmentType = await InvestmentType.findByIdAndUpdate(
+                investmentType._id,
+                {
+                    description: inv.investmentType.description,
+                    expectedAnnualReturn: expectedReturn._id,
+                    expectedAnnualIncome: expectedIncome._id,
+                    expenseRatio: inv.investmentType.expenseRatio,
+                    taxability: inv.investmentType.taxability
+                },
+                { new: true }
+            );
+        } else {
+            // InvestmentType doesn't exist - CREATE new documents
+            expectedReturn = await new ExpectedReturn(returnData).save();
+            expectedIncome = await new ExpectedReturn(incomeData).save();
+            
+            investmentType = await new InvestmentType({
+                name: inv.investmentType.name,
+                description: inv.investmentType.description,
+                expectedAnnualReturn: expectedReturn._id,
+                expectedAnnualIncome: expectedIncome._id,
+                expenseRatio: inv.investmentType.expenseRatio,
+                taxability: inv.investmentType.taxability
+            }).save();
+        }
     
         // Step 4: Create Investment (referencing the found/created InvestmentType)
         const investmentData = {

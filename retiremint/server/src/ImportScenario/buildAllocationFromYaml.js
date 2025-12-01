@@ -1,74 +1,120 @@
 const Investment = require('../Schemas/Investments');
-const Allocation = require('../Schemas/Allocation');
+// Allocation schema is no longer needed here
+// const Allocation = require('../Schemas/Allocation');
 
-function extractTaxStatus(investmentName) {
-  const knownStatuses = ['pre-tax', 'after-tax', 'non-retirement', 'tax-exempt'];
-  for (const status of knownStatuses) {
-    if (investmentName.includes(status)) return status;
+/**
+ * Converts a flat allocation map from YAML into a nested structure suitable for the database schema.
+ * Calculates taxStatusAllocation percentages and renormalizes percentages within each status.
+ * 
+ * @param {Object} flatAllocation - The flat allocation map from YAML (e.g., { 'invName1': 0.6, 'invName2': 0.4 }).
+ * @param {Map<string, { _id: ObjectId, accountTaxStatus: string }>} investmentMap - A map where keys are investment names from YAML 
+ *                                                                                    and values are objects containing the corresponding Mongoose _id and accountTaxStatus.
+ * @returns {Object} - An object containing the nested allocation structure: 
+ *                     { taxStatusAllocation, nonRetirementAllocation, preTaxAllocation, afterTaxAllocation, taxExemptAllocation }
+ *                     Returns null if flatAllocation is empty or invalid.
+ */
+function buildAllocationStructure(flatAllocation, investmentMap) {
+  if (!flatAllocation || Object.keys(flatAllocation).length === 0) {
+    return null; // No allocation to build
   }
-  throw new Error(`Unknown tax status in investment name: ${investmentName}`);
-}
 
-function statusToField(status) {
-  return {
-    'pre-tax': 'preTaxAllocation',
-    'after-tax': 'afterTaxAllocation',
-    'non-retirement': 'nonRetirementAllocation',
-    'tax-exempt': 'taxExemptAllocation'
-  }[status];
-}
-
-async function buildAllocationFromYaml(allocation1, allocation2 = null, isGlide = false) {
-  const investmentStrategy = {
-    taxStatusAllocation: {},
+  const nestedAllocation = {
+    taxStatusAllocation: {
+        'non-retirement': 0,
+        'pre-tax': 0,
+        'after-tax': 0,
+        'tax-exempt': 0
+    },
+    nonRetirementAllocation: {},
     preTaxAllocation: {},
     afterTaxAllocation: {},
-    nonRetirementAllocation: {},
     taxExemptAllocation: {}
   };
 
-  const finalInvestmentStrategy = {
-    taxStatusAllocation: {},
-    preTaxAllocation: {},
-    afterTaxAllocation: {},
-    nonRetirementAllocation: {},
-    taxExemptAllocation: {}
+  const statusTotals = { // Temporary totals for renormalization
+    'non-retirement': 0,
+    'pre-tax': 0,
+    'after-tax': 0,
+    'tax-exempt': 0
   };
 
-  const fixedAllocationStrings = [];
-  const glidePathStrings = [];
+  // First pass: Calculate totals for each tax status
+  for (const [yamlInvName, yamlPercentDecimal] of Object.entries(flatAllocation)) {
+    const investmentInfo = investmentMap.get(yamlInvName);
+    if (!investmentInfo) {
+        console.warn(`Import Warning: Investment "${yamlInvName}" found in allocation but not in the processed investment list. Skipping.`);
+        continue;
+    }
+    const status = investmentInfo.accountTaxStatus;
+    // Ensure yamlPercentDecimal is treated as a number, default to 0 if not.
+    const percentage = (Number(yamlPercentDecimal) || 0) * 100; 
 
-  for (const [name, pct] of Object.entries(allocation1)) {
-    const investment = await Investment.findOne({ name });
-    if (!investment) throw new Error(`Investment not found: ${name}`);
-
-    const status = extractTaxStatus(name);
-    investmentStrategy[statusToField(status)][investment._id] = pct;
-    fixedAllocationStrings.push(`${name}: ${pct}`);
+    if (status && statusTotals.hasOwnProperty(status)) {
+        nestedAllocation.taxStatusAllocation[status] += percentage;
+        statusTotals[status] += percentage;
+    } else {
+         // Log a warning if the status is unexpected but still proceed if possible
+         if(status) console.warn(`Import Warning: Investment "${yamlInvName}" has an unexpected tax status: "${status}".`);
+         else console.warn(`Import Warning: Investment "${yamlInvName}" has a missing tax status. Skipping allocation.`);
+    }
+  }
+  
+  // Round the top-level percentages to avoid floating point issues
+  for (const status in nestedAllocation.taxStatusAllocation) {
+    nestedAllocation.taxStatusAllocation[status] = Math.round(nestedAllocation.taxStatusAllocation[status] * 100) / 100; // Round to 2 decimal places
+  }
+  for (const status in statusTotals) {
+      statusTotals[status] = Math.round(statusTotals[status] * 100) / 100;
   }
 
-  if (isGlide && allocation2) {
-    for (const [name, pct] of Object.entries(allocation2)) {
-      const investment = await Investment.findOne({ name });
-      if (!investment) throw new Error(`Glide path investment not found: ${name}`);
 
-      const status = extractTaxStatus(name);
-      finalInvestmentStrategy[statusToField(status)][investment._id] = pct;
-      glidePathStrings.push(`${name}: ${pct}`);
+  // Second pass: Calculate within-status percentages and populate sub-allocation maps
+  for (const [yamlInvName, yamlPercentDecimal] of Object.entries(flatAllocation)) {
+    const investmentInfo = investmentMap.get(yamlInvName);
+    if (!investmentInfo || !investmentInfo.accountTaxStatus) continue; // Skip if no info or status
+    
+    const status = investmentInfo.accountTaxStatus;
+    const percentage = (Number(yamlPercentDecimal) || 0) * 100; 
+    const totalForStatus = statusTotals[status];
+    // Use the actual DB ID as the key in the sub-allocation maps
+    const dbInvestmentId = investmentInfo._id.toString(); 
+
+    if (status && totalForStatus > 0) {
+        // Avoid division by zero and handle rounding
+        const withinStatusPercent = Math.round((percentage / totalForStatus) * 100 * 100) / 100; // Calculate and round to 2 decimal places
+        
+        switch (status) {
+            case 'non-retirement':
+                nestedAllocation.nonRetirementAllocation[dbInvestmentId] = withinStatusPercent;
+                break;
+            case 'pre-tax':
+                nestedAllocation.preTaxAllocation[dbInvestmentId] = withinStatusPercent;
+                break;
+            case 'after-tax':
+                nestedAllocation.afterTaxAllocation[dbInvestmentId] = withinStatusPercent;
+                break;
+            case 'tax-exempt':
+                nestedAllocation.taxExemptAllocation[dbInvestmentId] = withinStatusPercent;
+                break;
+            // No default needed as status is checked
+        }
+    } else if (status && totalForStatus === 0 && percentage > 0) {
+        // This case indicates an issue, either bad input YAML or logic error in first pass
+        console.warn(`Import Warning: Investment "${yamlInvName}" has non-zero allocation (${percentage}%) but its status total (${status}) is zero. This percentage will be ignored.`);
+    } else if (status && totalForStatus < 0) {
+        // This case indicates negative percentages in YAML, which is invalid
+         console.warn(`Import Warning: Investment "${yamlInvName}" contributed to a negative status total (${status}: ${totalForStatus}). This percentage will be ignored.`);
     }
   }
 
-  const allocationDoc = await new Allocation({
-    method: isGlide ? 'glidePath' : 'fixedAllocation',
-    fixedAllocation: fixedAllocationStrings,
-    glidePath: isGlide ? glidePathStrings : []
-  }).save();
-
-  return {
-    allocationDoc,
-    investmentStrategy,
-    finalInvestmentStrategy: isGlide ? finalInvestmentStrategy : investmentStrategy
-  };
+  return nestedAllocation;
 }
 
-module.exports = buildAllocationFromYaml;
+// Remove helper functions no longer needed
+/*
+function extractTaxStatus(investmentName) { ... }
+function statusToField(status) { ... }
+*/
+
+module.exports = { buildAllocationStructure }; // Export the refactored function
+
