@@ -415,7 +415,7 @@ function Dashboard() {
                                                 Share
                                             </button>
                                             <button 
-                                                className="scenario-action-button"
+                                                className="scenario-action-button delete-btn"
                                                 onClick={() => handleDeleteScenario(scenario._id)}
                                             >
                                                 Delete
