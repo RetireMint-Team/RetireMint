@@ -18,7 +18,6 @@ function Dashboard() {
     const [showSimulationForm, setShowSimulationForm] = useState(false);
     const [error, setError] = useState(null);
     const [stateWarning, setStateWarning] = useState(null);
-    const [file, setFile] = useState(null);
     const [shareScenario, setShareScenario] = useState(null);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [shareEmail, setShareEmail] = useState('');
@@ -101,6 +100,12 @@ function Dashboard() {
 
     const handleNewScenario = () => {
         navigate('/new-scenario/new');
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('userId');
+        localStorage.removeItem('latestReportId');
+        navigate('/login');
     };
 
     const handleSelectScenario = (scenario) => {
@@ -235,79 +240,17 @@ function Dashboard() {
         } 
     }
 
-    const handleDownload = async () => {
-        try {
-          // Make a GET request to the backend to download the YAML file
-          const response = await axios.get('http://localhost:8000/download-state-tax-yaml', {
-            responseType: 'blob',  // Ensure the response is handled as a file
-          });
-      
-          // Create a temporary link to trigger the download
-          const url = window.URL.createObjectURL(new Blob([response.data]));
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'YAMLFormat.YAML';  // Name of the file to be downloaded
-          document.body.appendChild(a);  
-          a.click();  
-          a.remove();  
-        } catch (error) {
-          console.error('Error downloading the file:', error);
-          alert('There was an error while downloading the file. Please try again.');
-        }
-    };
-
-    const handleFileChange = (event) => {
-        const selectedFile = event.target.files[0];
-        if (selectedFile) {
-            const fileName = selectedFile.name.toLowerCase();
-            if (fileName.endsWith('.yaml')) {
-                setFile(selectedFile);  // Valid file extension
-            } else {
-                alert('Please select a .YAML file');
-                event.target.value = null;  // Clear the input
-                setFile(null);
-            }
-        }
-    };
-    
-
-    const handleFileUpload = async () => {
-        if (file) {
-            const userId = localStorage.getItem('userId'); // Get user ID from storage
-            if (!userId) {
-                alert('User not authenticated');
-                return;
-            }
-    
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('userId', userId); // Add userId to form data
-    
-            try {
-                await axios.post('http://localhost:8000/upload-state-tax-yaml', formData, {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                });
-                alert('File uploaded successfully');
-                // Optionally refresh user data after upload
-                fetchUserData();
-            } catch (error) {
-                console.error('Error uploading the file:', error);
-                alert(error.response?.data?.message || 'Failed to upload the file. Please try again.');
-            }
-        } else {
-            alert('Please select a file to upload.');
-        }
-    };
-
     if (loading) {
         return (
-            <div className="dashboard-container loading">
+            <>
                 <Header />
-                <div className="loading-spinner"></div>
-                <p>Loading your financial data...</p>
-            </div>
+                <div className="page-with-sidebar">
+                    <div className="dashboard-container loading">
+                        <div className="loading-spinner"></div>
+                        <p>Loading your financial data...</p>
+                    </div>
+                </div>
+            </>
         );
     }
 
@@ -361,52 +304,32 @@ function Dashboard() {
     return (
         <>
         <Header />
+        <div className="page-with-sidebar">
         <div className="dashboard-container">
-            {error && <div className="error-message">{error}</div>}
-            
-            {stateWarning && <div className="warning-message">{stateWarning}</div>} {/* Show the warning message */}
-            <button onClick={handleDownload}>Download Empty State YAML File</button>
-
-            {/* File upload section */}
-            <div className="file-upload-section">
-                <input type="file" onChange={handleFileChange} />
-                <button onClick={handleFileUpload}>Upload File</button>
-            </div>
-
-            <div className="dashboard-actions">
-                <button onClick={handleNewScenario} className="action-button">
-                    Create New Scenario
-                </button>
-            </div>
-            <select name="reports-view" onChange={(e) => setOwnerView(e.target.value)} className="reports-view-dropdown">
-                <option value="users">Your Reports</option>   
-                <option value="shared">Shared With You</option> 
-            </select>
-            
-            <div className="dashboard-content">
-                <div className="scenarios-section">
-
-                    {/* User is viewing their own Reports */}
-                    {ownerView === 'users' ? (
-                        <>
-                        <div className="scenarios-header">
-                            <h2 className="scenarios-title">Your Financial Scenarios</h2>
-                            {!showImportOptions ? (
-                                <button 
+            {/* Unified Toolbar Row */}
+            <div className="dashboard-toolbar">
+                <div className="toolbar-section toolbar-left">
+                    <div className="toolbar-actions">
+                        <button onClick={handleNewScenario} className="action-button">
+                            Create New Scenario
+                        </button>
+                        
+                        {!showImportOptions ? (
+                            <button 
                                 onClick={() => setShowImportOptions(true)} 
                                 className="import-scenario-header-button"
-                                >
+                            >
                                 Import Scenario
-                                </button>
-                            ) : (
-                                <div className="import-options-box">
+                            </button>
+                        ) : (
+                            <div className="import-options-box">
                                 <label htmlFor="scenarioImportInput" className="import-button-label">
                                     <input
-                                    type="file"
-                                    id="scenarioImportInput"
-                                    accept=".yaml"
-                                    style={{ display: 'none' }}
-                                    onChange={(e) => handleScenarioImport(e.target.files[0])}
+                                        type="file"
+                                        id="scenarioImportInput"
+                                        accept=".yaml"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => handleScenarioImport(e.target.files[0])}
                                     />
                                     <span className="import-button">Upload YAML File</span>
                                 </label>
@@ -416,8 +339,49 @@ function Dashboard() {
                                 >
                                     Cancel
                                 </button>
-                                </div>
-                            )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+                
+                <div className="toolbar-section toolbar-right">
+                    <div className="view-toggle">
+                        <button 
+                            className={`toggle-option ${ownerView === 'users' ? 'active' : ''}`}
+                            onClick={() => setOwnerView('users')}
+                        >
+                            My Scenarios
+                        </button>
+                        <button 
+                            className={`toggle-option ${ownerView === 'shared' ? 'active' : ''}`}
+                            onClick={() => setOwnerView('shared')}
+                        >
+                            Shared With Me
+                        </button>
+                        <div className={`toggle-slider ${ownerView === 'shared' ? 'right' : 'left'}`}></div>
+                    </div>
+                    <button className="logout-toolbar-button" onClick={handleLogout}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Log out</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div className="dashboard-main-content">
+            {error && <div className="error-message">{error}</div>}
+            {stateWarning && <div className="warning-message">{stateWarning}</div>}
+            <div className="dashboard-content">
+                <div className="scenarios-section">
+
+                    {/* User is viewing their own Reports */}
+                    {ownerView === 'users' ? (
+                        <>
+                        <div className="scenarios-header">
+                            <h2 className="scenarios-title">Your Financial Scenarios</h2>
                         </div>
                         {scenarios.length === 0 ? (
                             <div className="empty-state">
@@ -430,27 +394,32 @@ function Dashboard() {
                                     <div key={scenario._id} className="scenario-card">
                                         <div className="scenario-card-header">
                                             <h3 className="scenario-title">{scenario.name}</h3>
-                                            <button
-                                                className="scenario-menu-button"
-                                                onClick={() =>
-                                                setOpenMenuId(openMenuId === scenario._id ? null : scenario._id)
-                                                }
-                                            >
-                                                ︙
-                                            </button>
-                                            {openMenuId === scenario._id && (
-                                                <div className="scenario-dropdown">
-                                                <button onClick={() => handleEditScenario(scenario._id)}>Edit</button>
-                                                <button onClick={() => handleScenarioExport(scenario._id, scenario.name)}>Export</button>
-                                                <button onClick={() => handleShareScenario(scenario._id)}>Share</button>
-                                                <button onClick={() => handleDeleteScenario(scenario._id)}>Delete</button>
-                                                </div>
-                                            )}
                                         </div>
-                                        <p>{scenario.description || 'No description'}</p>
-                                        <div className="scenario-details">
-                                            <p>Type: {scenario.scenario_type}</p>
-                                            <p>Financial Goal: ${scenario.financial_goal?.toLocaleString() || 0}</p>
+                                        <div className="scenario-actions-grid">
+                                            <button 
+                                                className="scenario-action-button"
+                                                onClick={() => handleEditScenario(scenario._id)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button 
+                                                className="scenario-action-button"
+                                                onClick={() => handleScenarioExport(scenario._id, scenario.name)}
+                                            >
+                                                Export
+                                            </button>
+                                            <button 
+                                                className="scenario-action-button"
+                                                onClick={() => handleShareScenario(scenario._id)}
+                                            >
+                                                Share
+                                            </button>
+                                            <button 
+                                                className="scenario-action-button"
+                                                onClick={() => handleDeleteScenario(scenario._id)}
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
                                         <div className='report-actions'>
                                             <button 
@@ -479,12 +448,19 @@ function Dashboard() {
                                     const scenario = scenarioData.scenario;
                                     return(
                                         <div key={scenario._id} className="scenario-card">
-                                            <h3>{scenario.name}</h3>
-                                            <p>{scenario.description || 'No description'}</p>
-                                            <div className="scenario-details">
-                                                <p>Type: {scenario.scenario_type}</p>
-                                                <p>Financial Goal: ${scenario.financial_goal?.toLocaleString() || 0}</p>
+                                            <div className="scenario-card-header">
+                                                <h3 className="scenario-title">{scenario.name}</h3>
                                             </div>
+                                            {scenarioData.permissions === 'edit' && (
+                                                <div className="scenario-actions-grid">
+                                                    <button 
+                                                        className="scenario-action-button"
+                                                        onClick={() => handleEditScenario(scenario._id)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            )}
                                             <div className='report-actions'>
                                                 <button 
                                                     onClick={() => handleSelectScenario(scenario)}
@@ -492,14 +468,6 @@ function Dashboard() {
                                                 >
                                                     Run Simulation
                                                 </button>
-                                                {scenarioData.permissions === 'edit' ? ( 
-                                                    <button
-                                                        onClick={() => handleEditScenario(scenario._id)}
-                                                        className='edit-scenario-button'
-                                                    >
-                                                    Edit Scenario    
-                                                    </button>
-                                                ) : (<></>)}
                                             </div>
                                         </div>
                                     )}
@@ -534,7 +502,6 @@ function Dashboard() {
                                         </div>
                                         <div className="report-details">
                                             <p>Date: {new Date(report.createdAt).toLocaleDateString()}</p>
-                                            <p>Success Rate: {report.successRate?.toFixed(2)}%</p>
                                         </div>
                                         <div className="report-actions">
                                             <button 
@@ -574,7 +541,6 @@ function Dashboard() {
                                         <div className="report-details">
                                             <p>Author: {report.userId}</p>
                                             <p>Date: {new Date(report.createdAt).toLocaleDateString()}</p>
-                                            <p>Success Rate: {report.successRate?.toFixed(2)}%</p>
                                         </div>
                                         <div className="report-actions">
                                             <button 
@@ -591,6 +557,7 @@ function Dashboard() {
                         </>
                     )}
                 </div>
+            </div>
             </div>
 
             {showShareMenu && shareScenario && (
@@ -668,6 +635,11 @@ function Dashboard() {
                 </div>
             )}
 
+        </div>
+        
+        <footer className="dashboard-footer">
+            <p>© Copyright RetireMint 2025 All Rights Reserved</p>
+        </footer>
         </div>
         </>
     );

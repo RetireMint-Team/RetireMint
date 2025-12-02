@@ -153,6 +153,8 @@ function LoginPage() {
                 )}
                 
                 <div className="login-options">
+                    <div className="google-signin-button" ref={googleButtonRef}></div>
+                    
                     {loading ? (
                         <div className="loading-spinner">
                             <div className="spinner"></div>
@@ -160,8 +162,6 @@ function LoginPage() {
                         </div>
                     ) : (
                         <>
-                            <div className="google-signin-button" ref={googleButtonRef}></div>
-                            
                             <div className="separator">
                                 <span>OR</span>
                             </div>

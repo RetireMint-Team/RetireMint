@@ -1,0 +1,48 @@
+/* 
+ * RetireMint Color Scheme
+ * ========================
+ * This file defines all colors used throughout the application.
+ * Update these variables to change colors site-wide.
+ */
+
+:root {
+  /* Primary Colors */
+  --color-ash-grey: #CADBC8;           /* Cards - use black text */
+  --color-fern: #537A5A;               /* Primary buttons, accents - use white text */
+  --color-charcoal-blue: #2c3e50;      /* Header */
+  --color-footer: #414A4C;             /* Footer warm brown */
+  
+  /* Accent & UI Colors */
+  --color-accent: #CAC4DA;             /* Accent color for highlights */
+  --color-bubble: #ffffff;             /* Cards, bubbles - NOW WHITE */
+  --color-background: #E7E7DA;         /* Main page background - NOW BEIGE */
+  
+  /* Text Colors */
+  --color-text-dark: #2c3e50;          /* Primary text on light backgrounds */
+  --color-text-light: #ffffff;         /* Text on dark backgrounds */
+  --color-text-muted: #666666;         /* Secondary/muted text */
+  
+  /* Button States */
+  --color-fern-hover: #456649;         /* Darker fern for hover states */
+  --color-fern-active: #3d5a41;        /* Even darker for active states */
+  
+  /* Semantic Colors */
+  --color-success: #537A5A;            /* Success states (using fern) */
+  --color-error: #811F18;              /* Error states */
+  --color-warning: #e67e22;            /* Warning states */
+  --color-info: #3498db;               /* Info states */
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(44, 62, 80, 0.1);
+  --shadow-md: 0 4px 12px rgba(44, 62, 80, 0.15);
+  --shadow-lg: 0 8px 25px rgba(44, 62, 80, 0.2);
+  --shadow-button: 0 4px 15px rgba(83, 122, 90, 0.3);
+  --shadow-button-hover: 0 8px 25px rgba(83, 122, 90, 0.4);
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 30px;
+}
+

@@ -1,11 +1,12 @@
+/* App.css - Global app styles using CSS variables */
 
 .header {
-  background-color: #65B991; 
+  background-color: var(--color-charcoal-blue); 
   padding: 15px 20px;
 }
 
 .header_text {
-  color: white; 
+  color: var(--color-text-light); 
   margin: 0;
 }
 
@@ -15,21 +16,17 @@
 }
 
 .header-btn {
-  background-color: white;
-  color: #65B991;
+  background-color: var(--color-fern);
+  color: var(--color-text-light);
   border: none;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-weight: bold;
+  transition: all 0.2s ease;
 }
 
 .header-btn:hover {
-  background-color: #f0f0f0;
+  background-color: var(--color-fern-hover);
+  transform: translateY(-1px);
 }
-
-
-
-
-
-

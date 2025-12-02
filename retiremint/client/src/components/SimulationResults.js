@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import '../Stylesheets/SimulationResults.css';
+import '../Stylesheets/Dashboard.css';
 import Header from './HeaderComp';
 import Graph from './Graph';
 import GraphTwo from './GraphTwo';
@@ -141,25 +142,42 @@ const SimulationResults = () => {
   return (
     <>
       <Header />
-      <div className="simulation-results-container">
-        {!loading && reportData && <h1>{reportData.name}</h1>}
-        <Graph graphOne={graphOne} />
-        <GraphTwo 
-        graphTwoInvestment={graphTwoInvestment} 
-        financialGoal={financialGoal} 
-        graphTwoExpense={graphTwoExpense} 
-        graphTwoEarlyWithdrawalTax={graphTwoEarlyWithdrawalTax}
-        graphTwoIncome = {graphTwoIncome}
-        graphTwoDiscretionary = {graphTwoDiscretionary}
-
-
-        />
-
-        <GraphThree graphThreeInvestment={graphThreeInvestment} graphThreeIncome={graphThreeIncome} graphThreeExpense={graphThreeExpense} />
-        
-        
+      <div className="page-with-sidebar">
+        <div className="simulation-results-container">
+          {loading ? (
+            <div className="loading">
+              <p>Loading your simulation results...</p>
+            </div>
+          ) : reportData ? (
+            <>
+              <h1>{reportData.name}</h1>
+              <div className="graph-section">
+                <Graph graphOne={graphOne} />
+              </div>
+              <div className="graph-section">
+                <GraphTwo 
+                  graphTwoInvestment={graphTwoInvestment} 
+                  financialGoal={financialGoal} 
+                  graphTwoExpense={graphTwoExpense} 
+                  graphTwoEarlyWithdrawalTax={graphTwoEarlyWithdrawalTax}
+                  graphTwoIncome={graphTwoIncome}
+                  graphTwoDiscretionary={graphTwoDiscretionary}
+                />
+              </div>
+              <div className="graph-section graph-section-last">
+                <GraphThree graphThreeInvestment={graphThreeInvestment} graphThreeIncome={graphThreeIncome} graphThreeExpense={graphThreeExpense} />
+              </div>
+            </>
+          ) : (
+            <div className="error">
+              <p>Failed to load simulation results. Please try again.</p>
+            </div>
+          )}
+        </div>
+        <footer className="dashboard-footer">
+          <p>© Copyright RetireMint 2025 All Rights Reserved</p>
+        </footer>
       </div>
-      
     </>
   );
 };

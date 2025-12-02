@@ -12,7 +12,7 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
   const [scenario, setScenario] = useState(null);
   const [events, setEvents] = useState([]);
   const [settings, setSettings] = useState(null);
-  const [exploreMode, setExploreMode] = useState('one-dimensional');
+  const [exploreMode, setExploreMode] = useState('none');
 
   const [scenarioParameter, setScenarioParameter] = useState('');
   const [scenarioParameter2, setScenarioParameter2] = useState('');

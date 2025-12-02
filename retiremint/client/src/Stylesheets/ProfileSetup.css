@@ -2,9 +2,9 @@
     max-width: 500px;
     margin: 60px auto;
     padding: 24px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background-color: var(--color-bubble);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
     font-family: Arial, sans-serif;
   }
   
@@ -12,7 +12,7 @@
     text-align: center;
     margin-bottom: 24px;
     font-size: 22px;
-    color: #333;
+    color: var(--color-charcoal-blue);
   }
   
   .form-group {
@@ -23,7 +23,7 @@
     display: block;
     margin-bottom: 6px;
     font-weight: bold;
-    color: #555;
+    color: var(--color-text-dark);
   }
   
   .form-group input,
@@ -31,29 +31,39 @@
     width: 100%;
     padding: 10px;
     font-size: 15px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-md);
     box-sizing: border-box;
+    background-color: var(--color-background);
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: var(--color-fern);
+    outline: none;
   }
   
   .submit-button {
     width: 100%;
     padding: 12px;
     font-size: 16px;
-    background-color: #65B991; 
-    color: white;
+    background-color: var(--color-fern);
+    color: var(--color-text-light);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
   }
   
   .submit-button:hover {
-    background-color: #519d78; 
+    background-color: var(--color-fern-hover);
+    transform: translateY(-1px);
   }
   
-  
   .error-text {
-    color: red;
+    color: var(--color-error);
     font-size: 14px;
     margin-top: -8px;
     margin-bottom: 12px;
@@ -63,16 +73,17 @@
     width: 100%;
     padding: 12px;
     font-size: 16px;
-    background-color: #65B991; 
-    color: white;
+    background-color: var(--color-accent);
+    color: var(--color-text-dark);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     margin-top: 10px;
     cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
   }
   
   .skip-button:hover {
-    background-color: #519d78;
+    background-color: #b8b0cc;
+    transform: translateY(-1px);
   }
-  
-  

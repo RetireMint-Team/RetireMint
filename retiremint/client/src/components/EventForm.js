@@ -551,7 +551,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                     <h2>Event {index + 1}</h2>
 
                     {/* Name Input */}
-                    <h3>Name: *</h3>
+                    <h3>Name:</h3>
                     <input 
                         type="text" 
                         placeholder="Event Name" 
@@ -570,7 +570,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
 
 
                     {/* Start Year */}
-                    <h3>Start Year: *</h3>
+                    <h3>Start Year:</h3>
                     <select
                         value={event.startYear.returnType}
                         onChange={(e) => updateEvent(index, ['startYear', 'returnType'], e.target.value)}
@@ -650,7 +650,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
 
 
                     {/* Duration */}
-                    <h3>Duration: *</h3>
+                    <h3>Duration:</h3>
 
                     {/* Buttons to select return type */}
                     <button onClick={() => updateEvent(index, ['duration', 'returnType'], 'fixedValue')}>
@@ -714,7 +714,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
 
                     {/* Event Type */}
                     <div>
-                        <h3>Event Type: *</h3>
+                        <h3>Event Type:</h3>
                         <select 
                             value={event.eventType} 
                             onChange={(e) => updateEvent(index, ['eventType'], e.target.value)}
@@ -730,7 +730,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                     {event.eventType === 'income' && (
                         <div>
                             {/* Initial Amount */}
-                            <h3>Initial Amount: *</h3>
+                            <h3>Initial Amount:</h3>
                             <input 
                                 type="number" 
                                 placeholder="Initial Amount" 
@@ -739,7 +739,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                             />
 
                             {/* Expected Annual Change Type - Select Dropdown */}
-                            <h3>Expected Annual Change Type: *</h3>
+                            <h3>Expected Annual Change Type:</h3>
                             <select
                                 value={event.income.expectedAnnualChange.returnType}
                                 onChange={(e) => updateEvent(index, ['income', 'expectedAnnualChange', 'returnType'], e.target.value)}
@@ -883,7 +883,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                     {event.eventType === 'expense' && (
                         <div>
                             {/* Initial Amount */}
-                            <h3>Initial Amount: *</h3>
+                            <h3>Initial Amount:</h3>
                             <input 
                                 type="number" 
                                 placeholder="Initial Amount" 
@@ -1036,7 +1036,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                     {event.eventType === 'invest' && (
                         <div>
                             {/* Return Type Selection Buttons */}
-                            <h3>Execution Type: *</h3>
+                            <h3>Execution Type:</h3>
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                                     <input 
@@ -1080,7 +1080,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                             {/* Remove Modify Maximum Cash checkbox and input - Replace with direct input */}
                             <div style={{ marginBottom: '15px' }}>
                                         <label style={{ display: 'block', marginBottom: '5px' }}>
-                                    Maximum Cash: *
+                                    Maximum Cash:
                                         </label>
                                 {
                                     // Calculate prefilled value outside of JSX return if needed for complex logic
@@ -1462,7 +1462,7 @@ function EventForm({events, setEvents, scenarioType, setPage, investments}) {
                     {event.eventType === 'rebalance' && (
                         <div>
                             {/* Return Type Selection Buttons */}
-                            <h3>Execution Type: *</h3>
+                            <h3>Execution Type:</h3>
                             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                                     <input 

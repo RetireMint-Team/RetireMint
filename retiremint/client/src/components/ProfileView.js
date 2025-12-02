@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../Stylesheets/ProfileView.css';
+import '../Stylesheets/Dashboard.css';
 import Header from './HeaderComp';
 
 function ProfileView() {
@@ -57,63 +58,68 @@ function ProfileView() {
   };
   
   return (
-    <div>
+    <>
       <Header />
-      <div className="profile-container">
-        <h2>Your Profile</h2>
+      <div className="page-with-sidebar">
+        <div className="profile-container">
+          <h2>Your Profile</h2>
 
-        {error && <p className="error-message">{error}</p>}
-        {success && <p className="success-message">{success}</p>}
+          {error && <p className="error-message">{error}</p>}
+          {success && <p className="success-message">{success}</p>}
 
-        {!userData ? (
-          <p>Loading...</p>
-        ) : (
-          <div className="profile-field">
-            <p><strong>Name:</strong> {userData.name}</p>
-            <p><strong>Email:</strong> {userData.email}</p>
+          {!userData ? (
+            <p>Loading...</p>
+          ) : (
+            <div className="profile-field">
+              <p><strong>Name:</strong> {userData.name}</p>
+              <p><strong>Email:</strong> {userData.email}</p>
 
-            {isEditing ? (
-              <>
-                <label>Date of Birth:
-                  <input type="date" id="DOB" value={editData.DOB?.substring(0, 10)} onChange={handleChange} />
-                </label>
-                <label>State:
-                  <input id="state" value={editData.state} onChange={handleChange} />
-                </label>
-                <label>Marital Status:
-                  <select id="maritalStatus" value={editData.maritalStatus} onChange={handleChange}>
-                    <option value="individual">individual</option>
-                    <option value="married">married</option>
-                  </select>
-                </label>
-              </>
-            ) : (
-              <>
-                <p><strong>Date of Birth:</strong> {userData.DOB ? new Date(userData.DOB).toLocaleDateString() : 'N/A'}</p>
-                <p><strong>State:</strong> {userData.state || 'N/A'}</p>
-                <p><strong>Marital Status:</strong> {userData.maritalStatus || 'N/A'}</p>
-              </>
-            )}
+              {isEditing ? (
+                <>
+                  <label>Date of Birth:
+                    <input type="date" id="DOB" value={editData.DOB?.substring(0, 10)} onChange={handleChange} />
+                  </label>
+                  <label>State:
+                    <input id="state" value={editData.state} onChange={handleChange} />
+                  </label>
+                  <label>Marital Status:
+                    <select id="maritalStatus" value={editData.maritalStatus} onChange={handleChange}>
+                      <option value="individual">individual</option>
+                      <option value="married">married</option>
+                    </select>
+                  </label>
+                </>
+              ) : (
+                <>
+                  <p><strong>Date of Birth:</strong> {userData.DOB ? new Date(userData.DOB).toLocaleDateString() : 'N/A'}</p>
+                  <p><strong>State:</strong> {userData.state || 'N/A'}</p>
+                  <p><strong>Marital Status:</strong> {userData.maritalStatus || 'N/A'}</p>
+                </>
+              )}
 
-            <p><strong>Account Created:</strong> {new Date(userData.createdAt).toLocaleString()}</p>
-            <p><strong>Last Updated:</strong> {new Date(userData.updatedAt).toLocaleString()}</p>
-          </div>
-        )}
+              <p><strong>Account Created:</strong> {new Date(userData.createdAt).toLocaleString()}</p>
+              <p><strong>Last Updated:</strong> {new Date(userData.updatedAt).toLocaleString()}</p>
+            </div>
+          )}
 
-        {isEditing ? (
-          <>
-            <button className="submit-button" onClick={handleSave}>Save Changes</button>
-            <button className="skip-button" onClick={() => setIsEditing(false)}>Cancel</button>
-          </>
-        ) : (
-          <button className="submit-button" onClick={() => setIsEditing(true)}>Edit Profile</button>
-        )}
+          {isEditing ? (
+            <>
+              <button className="submit-button" onClick={handleSave}>Save Changes</button>
+              <button className="skip-button" onClick={() => setIsEditing(false)}>Cancel</button>
+            </>
+          ) : (
+            <button className="submit-button" onClick={() => setIsEditing(true)}>Edit Profile</button>
+          )}
 
-        <button className="back-button" onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-        </button>
+          <button className="back-button" onClick={() => navigate('/dashboard')}>
+              Back to Dashboard
+          </button>
+        </div>
+        <footer className="dashboard-footer">
+          <p>© Copyright RetireMint 2025 All Rights Reserved</p>
+        </footer>
       </div>
-    </div>
+    </>
   );
 }
 

@@ -8,6 +8,7 @@ import InvestmentForm from './InvestmentForm';
 import EventForm from './EventForm';
 import '../Stylesheets/NewScenario.css';
 import '../Stylesheets/Header.css';
+import '../Stylesheets/Dashboard.css';
 
 function NewScenario() {
     const navigate = useNavigate();
@@ -620,11 +621,19 @@ function NewScenario() {
 
     if (loading) {
         console.log(`loading: ${loading}`);
-        return <div className="loading">Loading simulation form...</div>;
+        return (
+            <>
+                <Header />
+                <div className="page-with-sidebar">
+                    <div className="loading">Loading simulation form...</div>
+                </div>
+            </>
+        );
     }
     return (
         <>
         <Header />
+        <div className="page-with-sidebar">
         <div className='new-scenario-form'>
             
             {error && <div className="error-message">{error}</div>}
@@ -634,7 +643,7 @@ function NewScenario() {
                         <h1>{scenarioId === 'new' ? "New Scenario Form" : "Edit Scenario Form"}</h1> 
                         <div>{/* name of the scenario */}
                             
-                            <h2>Scenario Name *</h2> 
+                            <h2>Scenario Name</h2> 
                             <input 
                                 type="text" 
                                 placeholder="Enter scenario name" 
@@ -644,7 +653,7 @@ function NewScenario() {
                         </div>
 
                         <div>  {/*married status */}
-                            <h2>Married status *</h2> 
+                            <h2>Married status</h2> 
                             <label>
                                 <input 
                                     type="radio" 
@@ -669,7 +678,7 @@ function NewScenario() {
                         </div>
 
                         <div>  {/*birthyear */}
-                            <h2>Birthyear(User) *</h2> 
+                            <h2>Birth Year (User)</h2> 
                             <input 
                             type="number" 
                             placeholder="Enter your birth year" 
@@ -679,7 +688,7 @@ function NewScenario() {
 
                             {scenarioType === 'married' && (
                                 <>
-                                    <h2>Birthyear(Spouse) *</h2> 
+                                    <h2>Birth Year (Spouse)</h2> 
                                     <input 
                                         type="number" 
                                         placeholder="Enter spouse's birth year" 
@@ -693,7 +702,7 @@ function NewScenario() {
 
                         <div>  {/* life expectancy */}
                             <div>
-                                <h2>Life Expectancy(User) * </h2>
+                                <h2>Life Expectancy (User) </h2>
                                 <button onClick={() => setLifeExpectancyMethod('fixedValue')}>
                                     Enter Fixed Age
                                 </button>
@@ -731,7 +740,7 @@ function NewScenario() {
                             {scenarioType === 'married' && (
                                 <>
                                     <div>
-                                        <h2>Life Expectancy (Spouse) *</h2>
+                                        <h2>Life Expectancy (Spouse)</h2>
                                         <button onClick={() => setSpouseLifeExpectancyMethod('fixedValue')}>
                                             Enter Fixed Age
                                         </button>
@@ -1125,7 +1134,7 @@ function NewScenario() {
 
 
                         {/* financial goal */}
-                        <h3>Financial Goal: *</h3>
+                        <h3>Financial Goal:</h3>
                         <input 
                             type="number" 
                             placeholder="Enter financial goal" 
@@ -1260,6 +1269,10 @@ function NewScenario() {
                 )}
                 </div>
             </div>
+        </div>
+        <footer className="dashboard-footer">
+            <p>© Copyright RetireMint 2025 All Rights Reserved</p>
+        </footer>
         </div>
         </>
     );

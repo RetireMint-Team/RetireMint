@@ -219,7 +219,7 @@ function GraphTwo({
   };
 
   return (
-    <div style={{ marginTop: '10vh' }}>
+    <div style={{ marginTop: '40px', paddingBottom: '40px' }}>
       <h3>Shaded line chart of probability ranges for a selected quantity over time</h3>
 
       <div style={{ 

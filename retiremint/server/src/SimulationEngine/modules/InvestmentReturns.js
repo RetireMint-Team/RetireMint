@@ -205,7 +205,7 @@ function processInvestmentReturns(prng = Math.random, yearState) {
             }
             // Calculate growth amount based on the *current* value (only if using percentage)
             if (expectedReturnRate !== -1) {
-                capitalGrowth = currentInvestmentValue * expectedReturnRate;
+            capitalGrowth = currentInvestmentValue * expectedReturnRate;
             }
         } else {
             // console.log(`Year ${yearState.year}: No return config found for ${investment.name}. Assuming 0% capital growth.`);

@@ -2,22 +2,25 @@
     max-width: 600px;
     margin: 40px auto;
     padding: 20px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background: var(--color-bubble);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
     font-family: Arial, sans-serif;
   }
   
   .profile-container h2 {
     text-align: center;
-    color: #333;
+    color: var(--color-charcoal-blue);
     margin-bottom: 24px;
   }
   
   .profile-field {
     line-height: 2;
     font-size: 16px;
-    color: #444;
+    color: var(--color-text-dark);
+    background-color: var(--color-ash-grey);
+    padding: 15px;
+    border-radius: var(--radius-md);
   }
   
   .profile-field p {
@@ -28,21 +31,26 @@
     margin-top: 24px;
     width: 100%;
     padding: 12px;
-    background-color: #65B991;
-    color: white;
+    background-color: var(--color-fern);
+    color: var(--color-text-light);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     cursor: pointer;
     font-size: 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
   }
   
   .back-button:hover {
-    background-color: #519d78;
+    background-color: var(--color-fern-hover);
+    transform: translateY(-1px);
   }
   
   .error-message {
-    color: red;
+    color: var(--color-error);
     font-size: 15px;
     text-align: center;
+    background-color: #ffebee;
+    padding: 10px;
+    border-radius: var(--radius-sm);
   }
-  

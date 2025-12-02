@@ -263,7 +263,10 @@ function GraphThree({ graphThreeInvestment, graphThreeIncome, graphThreeExpense 
         position: 'bottom',
         labels: {
           boxWidth: 12,
-          padding: 20
+          padding: 10,
+          font: {
+            size: 11
+          }
         }
       },
     },
@@ -296,7 +299,7 @@ function GraphThree({ graphThreeInvestment, graphThreeIncome, graphThreeExpense 
   };
 
   return (
-    <div style={{ width: '100%', height: '600px', padding: '20px' }}>
+    <div style={{ width: '95%', height: '600px', padding: '20px' }}>
       <h3>Stacked bar chart of median or average values of a selected quantity over time</h3>
       
       <div style={{ 

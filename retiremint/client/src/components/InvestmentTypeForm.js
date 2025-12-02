@@ -101,6 +101,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
             <h2>Number of Investment Types:</h2>
             <input 
                 type="number" 
+                className="investment-type-count-input"
                 value={investmentTypes.length} 
                 onChange={handleInvestmentTypeCountChange} 
             />
@@ -111,7 +112,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
                     
                     <>
                     {/* name and description */}
-                        <h3>Name: *</h3>
+                        <h3>Name:</h3>
                         <input 
                             type="text" 
                             placeholder="Investment Type Name" 
@@ -129,7 +130,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
 
                     <> {/* expected annual return */}
                         <div>
-                            <h3>Expected Annual Return: *</h3>
+                            <h3>Expected Annual Return:</h3>
                             
                             <button onClick={() => updateInvestmentType(index, ['expectedReturn', 'returnType'], 'fixedValue')}>
                                 Fixed Value
@@ -214,7 +215,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
 
                      {/* expense ratio */}
                      <div>
-                        <h3>Expense Ratio (%) *:</h3>
+                        <h3>Expense Ratio (%):</h3>
                         <input
                             type="number"
                             placeholder="Expense Ratio"
@@ -226,7 +227,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
 
                     <> {/* expected annual income */}
                         <div>
-                            <h3>Expected Annual Income from Interest or Dividends: *</h3>
+                            <h3>Expected Annual Income from Interest or Dividends:</h3>
 
                             <button onClick={() => updateInvestmentType(index, ['expectedIncome', 'returnType'], 'fixedValue')}>
                                 Fixed Value
@@ -309,7 +310,7 @@ function InvestmentTypeForm({ investmentTypes, setInvestmentTypes, setPage}) {
 
                     {/* taxability section */}
                     <div>
-                        <h3>Taxability: *</h3>
+                        <h3>Taxability:</h3>
                         <ul>
                             <li>
                                 <label>

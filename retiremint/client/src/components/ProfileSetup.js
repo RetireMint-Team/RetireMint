@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './HeaderComp';
 import '../Stylesheets/ProfileSetup.css';
+import '../Stylesheets/Dashboard.css';
 
 function UserProfileForm({ onComplete }) {
   const [formData, setFormData] = useState({
@@ -103,40 +104,45 @@ function UserProfileForm({ onComplete }) {
 
     return React.createElement(React.Fragment, null, [
       React.createElement(Header, { key: 'header' }),
-      React.createElement('div', { className: 'user-profile-form', key: 'form-container' }, [
-        React.createElement('h2', { key: 'title' }, 'Complete Your Profile'),
-        React.createElement(
-          'form',
-          { onSubmit: handleSubmit, key: 'form' },
-          [
-            createInput('DOB', 'Date of Birth', 'date'),
-            createSelect('state', 'State of Residence', states),
-            createSelect('maritalStatus', 'Marital Status', ['individual', 'married']),
-            error
-              ? React.createElement('div', { className: 'error-text', key: 'error' }, error)
-              : null,
-            React.createElement(
-              'button',
-              {
-                type: 'submit',
-                disabled: loading,
-                className: 'submit-button',
-                key: 'submit',
-              },
-              loading ? 'Saving...' : 'Save Profile'
-            ),
-            React.createElement(
-              'button',
-              {
-                type: 'button',
-                onClick: handleSkip,
-                className: 'skip-button',
-                key: 'skip',
-              },
-              'Skip for now'
-            )
-          ]
-        ),
+      React.createElement('div', { className: 'page-with-sidebar', key: 'page-wrapper' }, [
+        React.createElement('div', { className: 'user-profile-form', key: 'form-container' }, [
+          React.createElement('h2', { key: 'title' }, 'Complete Your Profile'),
+          React.createElement(
+            'form',
+            { onSubmit: handleSubmit, key: 'form' },
+            [
+              createInput('DOB', 'Date of Birth', 'date'),
+              createSelect('state', 'State of Residence', states),
+              createSelect('maritalStatus', 'Marital Status', ['individual', 'married']),
+              error
+                ? React.createElement('div', { className: 'error-text', key: 'error' }, error)
+                : null,
+              React.createElement(
+                'button',
+                {
+                  type: 'submit',
+                  disabled: loading,
+                  className: 'submit-button',
+                  key: 'submit',
+                },
+                loading ? 'Saving...' : 'Save Profile'
+              ),
+              React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  onClick: handleSkip,
+                  className: 'skip-button',
+                  key: 'skip',
+                },
+                'Skip for now'
+              )
+            ]
+          ),
+        ]),
+        React.createElement('footer', { className: 'dashboard-footer', key: 'footer' },
+          React.createElement('p', null, '© Copyright RetireMint 2025 All Rights Reserved')
+        )
       ])
     ]);    
 }

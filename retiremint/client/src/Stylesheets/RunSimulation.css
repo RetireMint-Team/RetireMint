@@ -2,88 +2,131 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: var(--color-bubble);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .run-simulation-container h2 {
-  color: #2c3e50;
+  color: var(--color-charcoal-blue);
   text-align: center;
   margin-bottom: 25px;
 }
 
 .form-group {
   margin-bottom: 20px;
+  background-color: var(--color-ash-grey);
+  border: 1px solid var(--color-ash-grey);
+  border-radius: var(--radius-md);
+  padding: 15px;
 }
 
 .form-group label {
   display: block;
   font-weight: bold;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--color-text-dark);
 }
 
 .form-group input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid var(--color-ash-grey) !important;
+  border-radius: var(--radius-md);
   font-size: 16px;
+  background-color: white !important;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  border-color: var(--color-fern);
+  outline: none;
+}
+
+/* Select element styling */
+.run-simulation-container select {
+  display: block;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto 20px auto;
+  padding: 10px 15px;
+  font-size: 14px;
+  background-color: var(--color-ash-grey);
+  border: 1px solid var(--color-ash-grey);
+  border-radius: var(--radius-md);
+  color: var(--color-text-dark);
+  cursor: pointer;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.run-simulation-container select:focus {
+  border-color: var(--color-fern);
+  outline: none;
+}
+
+.run-simulation-container select:hover {
+  border-color: var(--color-fern);
 }
 
 .help-text {
   font-size: 14px;
-  color: #7f8c8d;
+  color: var(--color-text-muted);
   margin-top: 5px;
 }
 
 .submit-button {
-  background-color: #3498db;
-  color: white;
+  background-color: var(--color-fern);
+  color: var(--color-text-light);
   border: none;
   padding: 12px 20px;
-  border-radius: 4px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   font-size: 16px;
+  font-weight: 500;
   width: 100%;
-  transition: background-color 0.3s;
+  transition: all 0.2s ease;
 }
 
 .submit-button:hover {
-  background-color: #2980b9;
+  background-color: var(--color-fern-hover);
+  transform: translateY(-1px);
 }
 
 .submit-button:disabled {
-  background-color: #95a5a6;
+  background-color: var(--color-accent);
   cursor: not-allowed;
+  transform: none;
 }
 
 .error-message {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffebee;
+  color: var(--color-error);
   padding: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   margin-bottom: 20px;
+  border-left: 4px solid var(--color-error);
 }
 
 .loading-message {
   text-align: center;
   margin-top: 20px;
-  color: #3498db;
+  color: var(--color-fern);
+  font-weight: 500;
 }
 
-.loading-spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
+.simulation-form .loading-spinner {
+  border: 4px solid var(--color-bubble);
   border-radius: 50%;
-  border-top: 4px solid #3498db;
+  border-top: 4px solid var(--color-fern);
   width: 30px;
   height: 30px;
-  animation: spin 1s linear infinite;
+  animation: simulation-spin 1s linear infinite;
   margin: 10px auto;
 }
 
-@keyframes spin {
+@keyframes simulation-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-} 
+}
