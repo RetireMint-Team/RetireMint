@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import MutipleLine from './MutipleLine';
 import FiveTwoGraph from './FiveTwoGraph';
 import Header from './HeaderComp';
+import '../Stylesheets/SimulationResults.css';
+import '../Stylesheets/Dashboard.css';
 
 const OneDimensionalSimulationResults = () => {
   const location = useLocation();
@@ -13,12 +15,23 @@ const OneDimensionalSimulationResults = () => {
   }, [exploreDatas]);
 
   return (
-    <div>
+    <>
       <Header />
-      <h1>One-dimensional scenario exploration</h1>
-      <MutipleLine exploreDatas={exploreDatas}/>
-      <FiveTwoGraph exploreDatas={exploreDatas}/>
-    </div>
+      <div className="page-with-sidebar">
+        <div className="simulation-results-container">
+          <h1>One-Dimensional Scenario Exploration</h1>
+          <div className="graph-section">
+            <MutipleLine exploreDatas={exploreDatas}/>
+          </div>
+          <div className="graph-section graph-section-last">
+            <FiveTwoGraph exploreDatas={exploreDatas}/>
+          </div>
+        </div>
+        <footer className="dashboard-footer">
+          <p>© Copyright RetireMint 2025 All Rights Reserved</p>
+        </footer>
+      </div>
+    </>
   );
 };
 

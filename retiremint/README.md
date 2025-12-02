@@ -5,11 +5,11 @@ TODO:
 - fix logging
 - fix browser and server console output
 - fix import/export
-- fix ui
+- fix ui - for scenario exploration
 - fix scenario exploration report generation and bugs
 - fix esslint errors
 - fix readme
-- circular dependency and conditional validation detection
+- circular dependency and conditional validation detection in frontend
 
 Potential Improvements:
 - improve pretax implementation

@@ -18,8 +18,8 @@ app.use(cors({
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 
 // connect to MongoDB database 
 mongoose.connect('mongodb://localhost:27017/retiremint')
@@ -1255,56 +1255,104 @@ app.post('/simulation/explore-scenario/create', async (req, res) => {
         const changedValue = req.body.changedValue;
         const changedValue2 = req.body.changedValue2;
 
+        console.log(`Creating explore scenario: param1=${scenarioParameter}(${changedValue}), param2=${scenarioParameter2}(${changedValue2})`);
+
+        // Track newly created documents for cleanup
+        const createdDocIds = {
+            eventIds: [],
+            startYearIds: [],
+            durationIds: []
+        };
 
         const scenario = await Scenario.findById(originalScenarioId);
         scenario._id = new mongoose.Types.ObjectId();
 
         if (scenarioParameter === 'event-start-year') {
-            console.log("Editting Start Year:");
+            console.log("Editting Start Year (Param 1):", changedValue);
             const parameterEvent = await Event.findById(parameterId);
             const startYear = await new StartYear({method: 'fixedValue', fixedValue: changedValue}).save();
+            createdDocIds.startYearIds.push(startYear._id);
+            
             parameterEvent._id = new mongoose.Types.ObjectId();
-            parameterEvent.startYear = startYear;
+            parameterEvent.startYear = startYear._id;
             parameterEvent.isNew = true;
-            parameterEvent.save();
+            await parameterEvent.save();
+            createdDocIds.eventIds.push(parameterEvent._id);
+            
             // Replace original event in events list with new event with adjusted Start Year.
-            scenario.events[scenario.events.indexOf(parameterId)] = parameterEvent._id;
-            scenario.name = (scenario.name + " - StartYear=" +  changedValue);
-
+            const eventIndex = scenario.events.findIndex(e => e.toString() === parameterId);
+            if (eventIndex !== -1) {
+                scenario.events[eventIndex] = parameterEvent._id;
+            }
+            scenario.name = (scenario.name + " - StartYear=" + changedValue);
         }
         else if (scenarioParameter === 'event-duration') {
-            console.log("Editting Duration:");
-            const parameterEvent = await Event.findById(parameterId2);
+            console.log("Editting Duration (Param 1):", changedValue);
+            const parameterEvent = await Event.findById(parameterId);
             const duration = await new Duration({method: 'fixedValue', fixedValue: changedValue}).save();
+            createdDocIds.durationIds.push(duration._id);
+            
             parameterEvent._id = new mongoose.Types.ObjectId();
-            parameterEvent.duration = duration;
+            parameterEvent.duration = duration._id;
             parameterEvent.isNew = true;
-            parameterEvent.save();
+            await parameterEvent.save();
+            createdDocIds.eventIds.push(parameterEvent._id);
+            
             // Replace original event in events list with new event with adjusted Duration.
-            scenario.events[scenario.events.indexOf(parameterId)] = parameterEvent._id;
-            scenario.name = (scenario.name + " - Duration=" +  changedValue);
+            const eventIndex = scenario.events.findIndex(e => e.toString() === parameterId);
+            if (eventIndex !== -1) {
+                scenario.events[eventIndex] = parameterEvent._id;
+            }
+            scenario.name = (scenario.name + " - Duration=" + changedValue);
         }
 
         /* Check for Second Parameter  */
         if (scenarioParameter2 !== null) {
             if (scenarioParameter2 === 'event-start-year') {
-                console.log("Editting Start Year:");
-                const parameterEvent = await Event.findById(parameterId2);
-                const startYear = await new StartYear({method: 'fixedValue', fixedValue: changedValue2}).save();
-                parameterEvent._id = new mongoose.Types.ObjectId();
-                parameterEvent.startYear = startYear;
-                parameterEvent.isNew = true;
-                parameterEvent.save();
+                console.log("Editting Start Year (Param 2):", changedValue2);
+                const parameterEvent2 = await Event.findById(parameterId2);
+                const startYear2 = await new StartYear({method: 'fixedValue', fixedValue: changedValue2}).save();
+                createdDocIds.startYearIds.push(startYear2._id);
+                
+                parameterEvent2._id = new mongoose.Types.ObjectId();
+                parameterEvent2.startYear = startYear2._id;
+                parameterEvent2.isNew = true;
+                await parameterEvent2.save();
+                createdDocIds.eventIds.push(parameterEvent2._id);
+                
                 // Replace original event in events list with new event with adjusted Start Year.
-                scenario.events[scenario.events.indexOf(parameterId2)] = parameterEvent._id;
-                scenario.name = (scenario.name + " - StartYear=" +  changedValue);
+                const eventIndex2 = scenario.events.findIndex(e => e.toString() === parameterId2);
+                if (eventIndex2 !== -1) {
+                    scenario.events[eventIndex2] = parameterEvent2._id;
+                }
+                scenario.name = (scenario.name + " - StartYear2=" + changedValue2);
+            }
+            else if (scenarioParameter2 === 'event-duration') {
+                console.log("Editting Duration (Param 2):", changedValue2);
+                const parameterEvent2 = await Event.findById(parameterId2);
+                const duration2 = await new Duration({method: 'fixedValue', fixedValue: changedValue2}).save();
+                createdDocIds.durationIds.push(duration2._id);
+                
+                parameterEvent2._id = new mongoose.Types.ObjectId();
+                parameterEvent2.duration = duration2._id;
+                parameterEvent2.isNew = true;
+                await parameterEvent2.save();
+                createdDocIds.eventIds.push(parameterEvent2._id);
+                
+                // Replace original event in events list with new event with adjusted Duration.
+                const eventIndex2 = scenario.events.findIndex(e => e.toString() === parameterId2);
+                if (eventIndex2 !== -1) {
+                    scenario.events[eventIndex2] = parameterEvent2._id;
+                }
+                scenario.name = (scenario.name + " - Duration2=" + changedValue2);
             }
         }
         scenario.isNew = true;
-        scenario.save();
+        await scenario.save();
         res.json({
             success: true,
             scenarioId: scenario._id,
+            createdDocIds: createdDocIds,
             message: `Sucessfully created duplicated scenario ${originalScenarioId} as ${scenario._id}.`,
        });
     }

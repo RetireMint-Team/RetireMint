@@ -105,6 +105,12 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
         else {
           const simResults = [];
           const parameterValues = [];
+          const tempScenarioIds = [];
+          const tempReportIds = [];
+          const tempEventIds = [];
+          const tempStartYearIds = [];
+          const tempDurationIds = [];
+          
           for (let i = lowerBound; i < upperBound; i += stepSize) {
             parameterValues.push(i);
             // Create a temporary scenario that has the scenario parameter changed. 
@@ -118,22 +124,71 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
               changedValue2: null,
             });
 
+            tempScenarioIds.push(tempScenarioResponse.data.scenarioId);
+            
+            // Track created document IDs for cleanup
+            if (tempScenarioResponse.data.createdDocIds) {
+              tempEventIds.push(...(tempScenarioResponse.data.createdDocIds.eventIds || []));
+              tempStartYearIds.push(...(tempScenarioResponse.data.createdDocIds.startYearIds || []));
+              tempDurationIds.push(...(tempScenarioResponse.data.createdDocIds.durationIds || []));
+            }
+
             // Run Simulations on Temporary Adjusted Scenario:
             const simulationResponse = await axios.post('http://localhost:8000/simulation/run', {
               scenarioId: tempScenarioResponse.data.scenarioId,
               numSimulations,
               userId,
-              reportName,
+              reportName: `${reportName} - Temp`,
             });
 
+            if (simulationResponse.data.reportId) {
+              tempReportIds.push(simulationResponse.data.reportId);
+            }
+
             simResults.push({parameterValue: i ,resultForGraph: simulationResponse.data.results});
-
-            // Delete temporary Scenarios and Reports
-            
-
           }
-          const exploreResults = {parameterName: scenarioParameter, parameterValues: parameterValues, results: simResults}
+          
+          // Get event name if parameter is event-related
+          const selectedEvent = events.find(e => e._id === parameterId);
+          const eventName = selectedEvent ? selectedEvent.name : null;
+          
+          const exploreResults = {parameterName: scenarioParameter, parameterValues: parameterValues, results: simResults, eventName}
           console.log(exploreResults);
+          
+          // Save the explore report to the database
+          try {
+            const saveResponse = await axios.post('http://localhost:8000/simulation/explore-report/save', {
+              name: `${scenarioName} 1D Report`,
+              type: '1D',
+              userId,
+              scenarioId,
+              scenarioName,
+              parameterName: scenarioParameter,
+              eventName,
+              parameterValues,
+              numSimulations,
+              results: simResults
+            });
+            console.log('Explore report saved:', saveResponse.data);
+          } catch (saveErr) {
+            console.warn('Could not save explore report (data may be too large):', saveErr.message);
+            // Continue anyway - user can still see results
+          }
+          
+          // Cleanup temporary scenarios, reports, events, startYears, and durations
+          try {
+            await axios.post('http://localhost:8000/simulation/explore-cleanup', {
+              tempScenarioIds,
+              tempReportIds,
+              tempEventIds,
+              tempStartYearIds,
+              tempDurationIds
+            });
+            console.log('Cleanup completed');
+          } catch (cleanupErr) {
+            console.warn('Cleanup failed:', cleanupErr.message);
+          }
+          
           navigate(`/one-dimensional-simulation-results`, { state: { exploreResults: exploreResults }})
         }
         
@@ -167,6 +222,12 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
           const simResults = [];
           const parameterValues = [];
           const parameterValues2 = [];
+          const tempScenarioIds = [];
+          const tempReportIds = [];
+          const tempEventIds = [];
+          const tempStartYearIds = [];
+          const tempDurationIds = [];
+          
           /* Populate Parameter Values 2 here rather than in inner loop to avoid repeats of values */
           for (let j = lowerBound2; j < upperBound2; j += stepSize2) {
             parameterValues2.push(j);
@@ -186,23 +247,77 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
                 changedValue2: j,
               });
 
+              tempScenarioIds.push(tempScenarioResponse.data.scenarioId);
+              
+              // Track created document IDs for cleanup
+              if (tempScenarioResponse.data.createdDocIds) {
+                tempEventIds.push(...(tempScenarioResponse.data.createdDocIds.eventIds || []));
+                tempStartYearIds.push(...(tempScenarioResponse.data.createdDocIds.startYearIds || []));
+                tempDurationIds.push(...(tempScenarioResponse.data.createdDocIds.durationIds || []));
+              }
+
               // Run Simulations on Temporary Adjusted Scenario:
               const simulationResponse = await axios.post('http://localhost:8000/simulation/run', {
                 scenarioId: tempScenarioResponse.data.scenarioId,
                 numSimulations,
                 userId,
-                reportName,
+                reportName: `${reportName} - Temp`,
               }); 
+              
+              if (simulationResponse.data.reportId) {
+                tempReportIds.push(simulationResponse.data.reportId);
+              }
+              
               simResults.push({parameterValue: i, parameterValue2: j, resultForGraph: simulationResponse.data.results});
             }
-
-
-            // Delete temporary Scenarios and Reports
-            
-
           }
-          const exploreResults = {parameterName: scenarioParameter, parameterName2: scenarioParameter2, parameterValues: parameterValues, parameterValues2: parameterValues2, results: simResults}
+          
+          // Get event names if parameters are event-related
+          const selectedEvent1 = events.find(e => e._id === parameterId);
+          const eventName = selectedEvent1 ? selectedEvent1.name : null;
+          const selectedEvent2 = events.find(e => e._id === parameterId2);
+          const eventName2 = selectedEvent2 ? selectedEvent2.name : null;
+          
+          const exploreResults = {parameterName: scenarioParameter, parameterName2: scenarioParameter2, parameterValues: parameterValues, parameterValues2: parameterValues2, results: simResults, eventName, eventName2}
           console.log(exploreResults);
+          
+          // Save the explore report to the database
+          try {
+            const saveResponse = await axios.post('http://localhost:8000/simulation/explore-report/save', {
+              name: `${scenarioName} 2D Report`,
+              type: '2D',
+              userId,
+              scenarioId,
+              scenarioName,
+              parameterName: scenarioParameter,
+              parameterName2: scenarioParameter2,
+              eventName,
+              eventName2,
+              parameterValues,
+              parameterValues2,
+              numSimulations,
+              results: simResults
+            });
+            console.log('Explore report saved:', saveResponse.data);
+          } catch (saveErr) {
+            console.warn('Could not save explore report (data may be too large):', saveErr.message);
+            // Continue anyway - user can still see results
+          }
+          
+          // Cleanup temporary scenarios, reports, events, startYears, and durations
+          try {
+            await axios.post('http://localhost:8000/simulation/explore-cleanup', {
+              tempScenarioIds,
+              tempReportIds,
+              tempEventIds,
+              tempStartYearIds,
+              tempDurationIds
+            });
+            console.log('Cleanup completed');
+          } catch (cleanupErr) {
+            console.warn('Cleanup failed:', cleanupErr.message);
+          }
+          
           navigate(`/two-dimensional-simulation-results`, { state: { exploreResults: exploreResults }})
         }
         
@@ -446,9 +561,9 @@ const RunSimulation = ({ scenarioId, scenarioName }) => {
       
       
       {loading && (
-        <div className="loading-message">
-          <p>Running Monte Carlo simulations... This may take a moment.</p>
+        <div className="loading-container">
           <div className="loading-spinner"></div>
+          <p className="loading-message">Running Monte Carlo simulations... This may take a moment.</p>
         </div>
       )}
     </div>

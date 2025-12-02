@@ -10,6 +10,14 @@ const FiveTwoGraph = ({exploreDatas}) => {
   }
   const [selectedQuantity, setSelectedQuantity] = useState('probabilityOfSuccess');
   
+  // Format parameter name with event name if available
+  const formatParamLabel = (paramName, eventName) => {
+    const formatted = paramName?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '';
+    return eventName ? `${formatted} (${eventName})` : formatted;
+  };
+  
+  const paramLabel = formatParamLabel(exploreDatas.parameterName, exploreDatas.eventName);
+  
   // Process the data to get final values for each parameter value
   const processData = () => {
     return exploreDatas.results.map(result => {
@@ -34,7 +42,7 @@ const FiveTwoGraph = ({exploreDatas}) => {
         return {
           parameterValue,
           value: finalProbability * 100,
-          name: `${parameterValue} ${exploreDatas.parameterName}`
+          name: `${parameterValue} ${paramLabel}`
         };
       } else {
         // Safe median calculation
@@ -50,7 +58,7 @@ const FiveTwoGraph = ({exploreDatas}) => {
           return {
             parameterValue,
             value: null, // Will be skipped by Line chart
-            name: `${parameterValue} ${exploreDatas.parameterName}`
+            name: `${parameterValue} ${paramLabel}`
           };
         }
         
@@ -63,7 +71,7 @@ const FiveTwoGraph = ({exploreDatas}) => {
         return {
           parameterValue,
           value: finalMedian,
-          name: `${parameterValue} ${exploreDatas.parameterName}`
+          name: `${parameterValue} ${paramLabel}`
         };
       }
     }).sort((a, b) => a.parameterValue - b.parameterValue);
@@ -72,25 +80,27 @@ const FiveTwoGraph = ({exploreDatas}) => {
   const chartData = processData();
 
   return (
-    <div style={{ width: '90%', height: 500,marginTop: '100px' }}>
-      <div style={{ marginBottom: 20 }}>
+    <div className="explore-graph-container">
+      <div className="explore-graph-controls">
         <h3>Line chart of a selected quantity as a function of parameter value</h3>
-        <label>
-          <input
-            type="radio"
-            checked={selectedQuantity === 'probabilityOfSuccess'}
-            onChange={() => setSelectedQuantity('probabilityOfSuccess')}
-          />
-          Final Probability of Success (%)
-        </label>
-        <label style={{ marginLeft: 20 }}>
-          <input
-            type="radio"
-            checked={selectedQuantity === 'medianInvestments'}
-            onChange={() => setSelectedQuantity('medianInvestments')}
-          />
-          Final Median Total Investments ($)
-        </label>
+        <div className="explore-radio-group">
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={selectedQuantity === 'probabilityOfSuccess'}
+              onChange={() => setSelectedQuantity('probabilityOfSuccess')}
+            />
+            Final Probability of Success (%)
+          </label>
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={selectedQuantity === 'medianInvestments'}
+              onChange={() => setSelectedQuantity('medianInvestments')}
+            />
+            Final Median Total Investments ($)
+          </label>
+        </div>
       </div>
       
       <ResponsiveContainer width="100%" height="100%">
@@ -107,7 +117,7 @@ const FiveTwoGraph = ({exploreDatas}) => {
           <XAxis 
             dataKey="parameterValue"
             label={{
-                value: exploreDatas.parameterName,
+                value: paramLabel,
                 position: 'insideBottom',
                 offset: -10
               }}
@@ -126,7 +136,7 @@ const FiveTwoGraph = ({exploreDatas}) => {
             formatter={(value) => selectedQuantity === 'probabilityOfSuccess' 
               ? [`${value}%`, 'Probability'] 
               : [`$${value.toLocaleString()}`, 'Investment Value']}
-            labelFormatter={(paramValue) => `${exploreDatas.parameterName}: ${paramValue}`}
+            labelFormatter={(paramValue) => `${paramLabel}: ${paramValue}`}
           />
           <Legend 
             wrapperStyle={{

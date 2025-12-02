@@ -10,6 +10,14 @@ const MutipleLine = ({exploreDatas}) => {
   const [selectedQuantity, setSelectedQuantity] = useState('probabilityOfSuccess');
   const baseYear = 2025;
   
+  // Format parameter name with event name if available
+  const formatParamLabel = (paramName, eventName) => {
+    const formatted = paramName?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '';
+    return eventName ? `${formatted} (${eventName})` : formatted;
+  };
+  
+  const paramLabel = formatParamLabel(exploreDatas.parameterName, exploreDatas.eventName);
+  
   
   // Process the data based on selected quantity
   const processData = () => {
@@ -36,7 +44,7 @@ const MutipleLine = ({exploreDatas}) => {
           data: yearlyProbabilities.map((probability, yearIndex) => ({
             year: baseYear + yearIndex,
             value: probability * 100,
-            name: `${parameterValue} ${exploreDatas.parameterName}`
+            name: `${parameterValue} ${paramLabel}`
           }))
         };
       } else {
@@ -65,7 +73,7 @@ const MutipleLine = ({exploreDatas}) => {
           data: yearlyMedians.map((median, yearIndex) => ({
             year: baseYear + yearIndex,
             value: median,
-            name: `${parameterValue} ${exploreDatas.parameterName}`
+            name: `${parameterValue} ${paramLabel}`
           }))
         };
       }
@@ -93,25 +101,27 @@ const MutipleLine = ({exploreDatas}) => {
   }
 
   return (
-    <div style={{ width: '90%', height: 500, marginTop: '20px'}}>
-      <div style={{ marginBottom: 20 }}>
+    <div className="explore-graph-container">
+      <div className="explore-graph-controls">
         <h3>Multi-line chart of the value of a selected quantity over time</h3>
-        <label>
-          <input
-            type="radio"
-            checked={selectedQuantity === 'probabilityOfSuccess'}
-            onChange={() => setSelectedQuantity('probabilityOfSuccess')}
-          />
-          Probability of Success (%)
-        </label>
-        <label style={{ marginLeft: 20 }}>
-          <input
-            type="radio"
-            checked={selectedQuantity === 'medianInvestments'}
-            onChange={() => setSelectedQuantity('medianInvestments')}
-          />
-          Median Total Investments ($)
-        </label>
+        <div className="explore-radio-group">
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={selectedQuantity === 'probabilityOfSuccess'}
+              onChange={() => setSelectedQuantity('probabilityOfSuccess')}
+            />
+            Probability of Success (%)
+          </label>
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={selectedQuantity === 'medianInvestments'}
+              onChange={() => setSelectedQuantity('medianInvestments')}
+            />
+            Median Total Investments ($)
+          </label>
+        </div>
       </div>
       
       <ResponsiveContainer width="100%" height="100%">
@@ -161,7 +171,7 @@ const MutipleLine = ({exploreDatas}) => {
               key={paramData.parameterValue}
               type="monotone"
               dataKey={`${paramData.parameterValue}`}
-              name={`${paramData.parameterValue} ${exploreDatas.parameterName}`}
+              name={`${paramData.parameterValue} ${paramLabel}`}
               stroke={`#${Math.floor(Math.random()*16777215).toString(16)}`}
               activeDot={{ r: 8 }}
               connectNulls={true}

@@ -128,6 +128,15 @@
   padding-bottom: 75px;
 }
 
+/* Extra height for 2D surface plot container (first graph only) */
+.graph-section-2d-first {
+  min-height: 900px;
+}
+
+.graph-section-2d-first .explore-graph-container {
+  height: 800px;
+}
+
 .graph-section-last {
   margin-bottom: 60px;
   padding-bottom: 250px;
@@ -174,6 +183,56 @@
   background-color: #ffebee;
   border-radius: var(--radius-md);
   border-left: 4px solid var(--color-error);
+}
+
+/* Explore Graph Containers (One-Dimensional Results) */
+.explore-graph-container {
+  width: 100%;
+  height: 500px;
+  padding: 20px 0;
+}
+
+.explore-graph-controls {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.explore-graph-controls h3 {
+  color: var(--color-charcoal-blue);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.explore-radio-group {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.explore-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--color-text-dark);
+  font-size: 14px;
+  padding: 8px 16px;
+  background-color: var(--color-ash-grey);
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+}
+
+.explore-radio-label:hover {
+  background-color: var(--color-fern);
+  color: var(--color-text-light);
+}
+
+.explore-radio-label input[type="radio"] {
+  accent-color: var(--color-fern);
+  width: 16px;
+  height: 16px;
 }
 
 /* Responsive adjustments */

@@ -3,6 +3,10 @@ const router = express.Router();
 const { runSimulations } = require('../SimulationEngine');
 const Scenario = require('../Schemas/Scenario');
 const Report = require('../Schemas/Report');
+const ExploreReport = require('../Schemas/ExploreReport');
+const Event = require('../Schemas/EventSeries');
+const StartYear = require('../Schemas/StartYear');
+const Duration = require('../Schemas/Duration');
 const fs = require('fs');
 const path = require('path');
 const User = require('../Schemas/Users');
@@ -491,6 +495,167 @@ router.get('/sharedscenarios/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching scenarios:', error);
     res.status(500).json({ error: 'Error fetching scenarios' });
+  }
+});
+
+// ==================== EXPLORE REPORT ROUTES ====================
+
+// Save a 1D or 2D exploration report
+router.post('/explore-report/save', async (req, res) => {
+  try {
+    const { 
+      name, 
+      type, 
+      userId, 
+      scenarioId, 
+      scenarioName,
+      parameterName, 
+      parameterName2,
+      eventName,
+      eventName2,
+      parameterValues, 
+      parameterValues2,
+      numSimulations,
+      results 
+    } = req.body;
+
+    const exploreReport = new ExploreReport({
+      name,
+      type,
+      userId,
+      scenarioId,
+      scenarioName,
+      parameterName,
+      parameterName2,
+      eventName,
+      eventName2,
+      parameterValues,
+      parameterValues2,
+      numSimulations,
+      results,
+      createdAt: new Date()
+    });
+
+    await exploreReport.save();
+    console.log(`Explore report saved with ID: ${exploreReport._id}`);
+
+    res.json({
+      success: true,
+      reportId: exploreReport._id,
+      message: 'Exploration report saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving explore report:', error);
+    res.status(500).json({ error: 'Failed to save exploration report' });
+  }
+});
+
+// Get all 1D exploration reports for a user
+router.get('/explore-reports/1d/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const reports = await ExploreReport.find({ userId, type: '1D' }).sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching 1D explore reports:', error);
+    res.status(500).json({ error: 'Failed to fetch 1D exploration reports' });
+  }
+});
+
+// Get all 2D exploration reports for a user
+router.get('/explore-reports/2d/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const reports = await ExploreReport.find({ userId, type: '2D' }).sort({ createdAt: -1 });
+    res.json(reports);
+  } catch (error) {
+    console.error('Error fetching 2D explore reports:', error);
+    res.status(500).json({ error: 'Failed to fetch 2D exploration reports' });
+  }
+});
+
+// Get a single exploration report by ID
+router.get('/explore-report/:id', async (req, res) => {
+  try {
+    const report = await ExploreReport.findById(req.params.id);
+    if (!report) {
+      return res.status(404).json({ error: 'Exploration report not found' });
+    }
+    res.json(report);
+  } catch (error) {
+    console.error('Error fetching explore report:', error);
+    res.status(500).json({ error: 'Failed to fetch exploration report' });
+  }
+});
+
+// Delete an exploration report
+router.delete('/explore-report/:reportId', async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    await ExploreReport.findByIdAndDelete(reportId);
+    res.json({ success: true, message: 'Exploration report deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting explore report:', error);
+    res.status(500).json({ error: 'Failed to delete exploration report' });
+  }
+});
+
+// Cleanup temporary scenarios and reports after exploration
+router.post('/explore-cleanup', async (req, res) => {
+  try {
+    const { tempScenarioIds, tempReportIds, tempEventIds, tempStartYearIds, tempDurationIds } = req.body;
+    
+    let deletedEvents = 0;
+    let deletedStartYears = 0;
+    let deletedDurations = 0;
+
+    // Delete temporary StartYear documents
+    if (tempStartYearIds && tempStartYearIds.length > 0) {
+      await StartYear.deleteMany({ _id: { $in: tempStartYearIds } });
+      deletedStartYears = tempStartYearIds.length;
+      console.log(`Deleted ${deletedStartYears} temporary StartYear documents`);
+    }
+
+    // Delete temporary Duration documents
+    if (tempDurationIds && tempDurationIds.length > 0) {
+      await Duration.deleteMany({ _id: { $in: tempDurationIds } });
+      deletedDurations = tempDurationIds.length;
+      console.log(`Deleted ${deletedDurations} temporary Duration documents`);
+    }
+
+    // Delete temporary Event documents
+    if (tempEventIds && tempEventIds.length > 0) {
+      await Event.deleteMany({ _id: { $in: tempEventIds } });
+      deletedEvents = tempEventIds.length;
+      console.log(`Deleted ${deletedEvents} temporary Event documents`);
+    }
+
+    // Delete temporary scenarios
+    if (tempScenarioIds && tempScenarioIds.length > 0) {
+      await Scenario.deleteMany({ _id: { $in: tempScenarioIds } });
+      console.log(`Deleted ${tempScenarioIds.length} temporary scenarios`);
+    }
+
+    // Delete temporary reports
+    if (tempReportIds && tempReportIds.length > 0) {
+      await Report.deleteMany({ _id: { $in: tempReportIds } });
+      console.log(`Deleted ${tempReportIds.length} temporary reports`);
+    }
+
+    console.log(`Cleanup complete: ${deletedEvents} events, ${deletedStartYears} startYears, ${deletedDurations} durations`);
+
+    res.json({ 
+      success: true, 
+      message: 'Cleanup completed successfully',
+      deletedReports: tempReportIds?.length || 0,
+      deletedScenarios: tempScenarioIds?.length || 0,
+      deletedEvents,
+      deletedStartYears,
+      deletedDurations
+    });
+  } catch (error) {
+    console.error('Error during cleanup:', error);
+    res.status(500).json({ error: 'Failed to cleanup temporary data' });
   }
 });
 

@@ -5,11 +5,20 @@ import Plot from 'react-plotly.js';
 const calculateProbability = (resultForGraph) => {
   if (!resultForGraph?.yearlyResults || resultForGraph.yearlyResults.length === 0) return 0;
 
-  const lastYearIndex = resultForGraph.yearlyResults[0].length - 1;
+  // Use the first simulation's length as reference (same approach as FiveTwoGraph)
+  const lastYearIndex = resultForGraph.yearlyResults[0]?.length > 0 
+    ? resultForGraph.yearlyResults[0].length - 1 
+    : -1;
+  
+  if (lastYearIndex < 0) return 0;
+  
   const total = resultForGraph.yearlyResults.length;
-  const successes = resultForGraph.yearlyResults.filter(
-    sim => sim[lastYearIndex]?.meetingFinancialGoal
+  const successes = resultForGraph.yearlyResults.filter(sim => 
+    sim && 
+    sim[lastYearIndex] && 
+    sim[lastYearIndex].meetingFinancialGoal === true
   ).length;
+  
   const probability = total > 0 ? successes / total : 0;
   
   // Multiply probability by 100 to scale it to percentage
@@ -19,13 +28,23 @@ const calculateProbability = (resultForGraph) => {
 const calculateMedianInvestments = (resultForGraph) => {
   if (!resultForGraph?.investmentValueArrays || resultForGraph.investmentValueArrays.length === 0) return 0;
 
-  const lastYearIndex = resultForGraph.investmentValueArrays[0].length - 1;
+  // Use the first simulation's length as reference
+  const lastYearIndex = resultForGraph.investmentValueArrays[0]?.length > 0 
+    ? resultForGraph.investmentValueArrays[0].length - 1 
+    : -1;
+  
+  if (lastYearIndex < 0) return 0;
+  
   const totals = resultForGraph.investmentValueArrays.map(sim => {
-    if (!sim[lastYearIndex]) return 0;
+    if (!sim || !sim[lastYearIndex]) return 0;
     return Object.values(sim[lastYearIndex]).reduce((sum, val) => sum + (val || 0), 0);
-  });
+  }).filter(val => val > 0);
+  
+  if (totals.length === 0) return 0;
+  
   totals.sort((a, b) => a - b);
-  return totals.length > 0 ? totals[Math.floor(totals.length / 2)] : 0;
+  const mid = Math.floor(totals.length / 2);
+  return totals.length % 2 !== 0 ? totals[mid] : (totals[mid - 1] + totals[mid]) / 2;
 };
 
 const prepareContourData = (exploreDatas, zType) => {
@@ -66,30 +85,40 @@ const prepareContourData = (exploreDatas, zType) => {
 
 const ContourPlot = ({ exploreDatas }) => {
   const [zAxis, setZAxis] = useState('probability');
+  
+  // Format parameter name with event name if available
+  const formatParamLabel = (paramName, eventName) => {
+    const formatted = paramName?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '';
+    return eventName ? `${formatted} (${eventName})` : formatted;
+  };
+  
+  const paramLabel1 = formatParamLabel(exploreDatas?.parameterName, exploreDatas?.eventName);
+  const paramLabel2 = formatParamLabel(exploreDatas?.parameterName2, exploreDatas?.eventName2);
+  
   const { x, y, z } = prepareContourData(exploreDatas, zAxis);
 
   return (
-    <div style={{ width: '90%', height: '90%', padding: '20px' }}>
-      <div style={{ marginBottom: 20, textAlign: 'center' }}>
+    <div className="explore-graph-container">
+      <div className="explore-graph-controls">
         <h3>Contour plot of a selected quantity as a function of parameter values</h3>
-        <label style={{ marginRight: 15 }}>
-          <input
-            type="radio"
-            checked={zAxis === 'probability'}
-            onChange={() => setZAxis('probability')}
-            style={{ marginRight: 5 }}
-          />
-          Probability of Success
-        </label>
-        <label>
-          <input
-            type="radio"
-            checked={zAxis === 'investment'}
-            onChange={() => setZAxis('investment')}
-            style={{ marginRight: 5 }}
-          />
-          Median Investments ($)
-        </label>
+        <div className="explore-radio-group">
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={zAxis === 'probability'}
+              onChange={() => setZAxis('probability')}
+            />
+            Probability of Success
+          </label>
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={zAxis === 'investment'}
+              onChange={() => setZAxis('investment')}
+            />
+            Median Investments ($)
+          </label>
+        </div>
       </div>
 
       <Plot
@@ -132,13 +161,13 @@ const ContourPlot = ({ exploreDatas }) => {
             }
           },
           xaxis: {
-            title: exploreDatas.parameterName,
+            title: paramLabel1,
             tickvals: x,
             tickmode: 'array',
             gridcolor: '#eee'
           },
           yaxis: {
-            title: exploreDatas.parameterName2,
+            title: paramLabel2,
             tickvals: y,
             tickmode: 'array',
             gridcolor: '#eee'

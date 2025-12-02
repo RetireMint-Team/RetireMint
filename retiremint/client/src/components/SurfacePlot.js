@@ -4,13 +4,16 @@ import Plot from 'react-plotly.js';
 // Safe probability calculation
 const calculateProbability = (resultForGraph) => {
   // Check if we have any yearly results
-  if (!resultForGraph?.yearlyResults?.length) return 0;
+  if (!resultForGraph?.yearlyResults?.length) {
+    return 0;
+  }
   
-  // Find the minimum length across all scenarios
-  const minLength = Math.min(...resultForGraph.yearlyResults.map(sim => sim?.length || 0));
-  if (minLength === 0) return 0;
+  // Use the first simulation's length as reference (same approach as FiveTwoGraph)
+  const lastYearIndex = resultForGraph.yearlyResults[0]?.length > 0 
+    ? resultForGraph.yearlyResults[0].length - 1 
+    : -1;
   
-  const lastYearIndex = minLength - 1;
+  if (lastYearIndex < 0) return 0;
   
   const total = resultForGraph.yearlyResults.length;
   const successes = resultForGraph.yearlyResults.filter(sim => 
@@ -30,18 +33,19 @@ const calculateMedianInvestments = (resultForGraph) => {
   // Check if we have any investment arrays
   if (!resultForGraph?.investmentValueArrays?.length) return 0;
   
-  // Find the minimum length across all investment arrays
-  const minLength = Math.min(...resultForGraph.investmentValueArrays.map(sim => sim?.length || 0));
-  if (minLength === 0) return 0;
+  // Use the first simulation's length as reference
+  const lastYearIndex = resultForGraph.investmentValueArrays[0]?.length > 0 
+    ? resultForGraph.investmentValueArrays[0].length - 1 
+    : -1;
   
-  const lastYearIndex = minLength - 1;
+  if (lastYearIndex < 0) return 0;
   
   const totals = resultForGraph.investmentValueArrays
     .map(sim => {
-      const yearData = sim && sim[lastYearIndex];
-      return yearData ? Object.values(yearData).reduce((sum, val) => sum + (val || 0), 0) : 0;
+      if (!sim || !sim[lastYearIndex]) return 0;
+      return Object.values(sim[lastYearIndex]).reduce((sum, val) => sum + (val || 0), 0);
     })
-    .filter(val => !isNaN(val));
+    .filter(val => val > 0);
   
   if (totals.length === 0) return 0;
   
@@ -96,6 +100,15 @@ const SurfacePlot = ({ exploreDatas }) => {
   if (!exploreDatas) {
     return <div>Loading data...</div>;
   }
+  
+  // Format parameter name with event name if available
+  const formatParamLabel = (paramName, eventName) => {
+    const formatted = paramName?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '';
+    return eventName ? `${formatted} (${eventName})` : formatted;
+  };
+  
+  const paramLabel1 = formatParamLabel(exploreDatas.parameterName, exploreDatas.eventName);
+  const paramLabel2 = formatParamLabel(exploreDatas.parameterName2, exploreDatas.eventName2);
 
   const { x, y, z } = prepareSurfaceData(exploreDatas, zAxis);
 
@@ -105,26 +118,27 @@ const SurfacePlot = ({ exploreDatas }) => {
   }
 
   return (
-    <div style={{ width: '90%', height: '90%' }}>
-      {/* Radio buttons remain the same */}
-      <div style={{ marginBottom: 20 }}>
+    <div className="explore-graph-container">
+      <div className="explore-graph-controls">
         <h3>Surface plot of a selected quantity as a function of parameter values</h3>
-        <label>
-          <input
-            type="radio"
-            checked={zAxis === 'probability'}
-            onChange={() => setZAxis('probability')}
-          />
-          Probability of Success
-        </label>
-        <label style={{ marginLeft: 20 }}>
-          <input
-            type="radio"
-            checked={zAxis === 'investment'}
-            onChange={() => setZAxis('investment')}
-          />
-          Median Investments ($)
-        </label>
+        <div className="explore-radio-group">
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={zAxis === 'probability'}
+              onChange={() => setZAxis('probability')}
+            />
+            Probability of Success
+          </label>
+          <label className="explore-radio-label">
+            <input
+              type="radio"
+              checked={zAxis === 'investment'}
+              onChange={() => setZAxis('investment')}
+            />
+            Median Investments ($)
+          </label>
+        </div>
       </div>
 
       <Plot
@@ -146,12 +160,12 @@ const SurfacePlot = ({ exploreDatas }) => {
           title: `${zAxis === 'probability' ? 'Probability of Success' : 'Median Investments'} vs. Parameters`,
           scene: {
             xaxis: { 
-              title: exploreDatas.parameterName || 'Parameter 1',
+              title: paramLabel1 || 'Parameter 1',
               tickvals: x,
               tickmode: 'array',
             },
             yaxis: { 
-              title: exploreDatas.parameterName2 || 'Parameter 2',
+              title: paramLabel2 || 'Parameter 2',
               tickvals: y,
               tickmode: 'array',
             },

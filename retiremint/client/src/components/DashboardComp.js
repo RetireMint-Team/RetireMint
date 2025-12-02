@@ -9,6 +9,8 @@ import fileDownload from 'js-file-download';
 function Dashboard() {
     const [scenarios, setScenarios] = useState([]);
     const [reports, setReports] = useState([]);
+    const [exploreReports1D, setExploreReports1D] = useState([]);
+    const [exploreReports2D, setExploreReports2D] = useState([]);
     const [sharedReportsData, setSharedReportsData] = useState([]);
     const [sharedScenariosData, setSharedScenariosData] = useState([]);
 
@@ -43,6 +45,14 @@ function Dashboard() {
                 // Fetch user's simulation reports
                 const reportsResponse = await axios.get(`http://localhost:8000/simulation/reports/${userId}`);
                 setReports(reportsResponse.data);
+
+                // Fetch user's 1D exploration reports
+                const explore1DResponse = await axios.get(`http://localhost:8000/simulation/explore-reports/1d/${userId}`);
+                setExploreReports1D(explore1DResponse.data);
+
+                // Fetch user's 2D exploration reports
+                const explore2DResponse = await axios.get(`http://localhost:8000/simulation/explore-reports/2d/${userId}`);
+                setExploreReports2D(explore2DResponse.data);
 
                 // Fetch scenarios shared with user and the respective permissions
                 const sharedScenariosResponse = await axios.get(`http://localhost:8000/simulation/sharedscenarios/${userId}`);
@@ -148,6 +158,50 @@ function Dashboard() {
             } catch (error) {
                 console.error('Error deleting scenario:', error);
                 setError('Failed to delete the scenario. Please try again later.');
+            }
+        }
+    };
+
+    const handleViewExploreReport = (reportId, type) => {
+        if (type === '1D') {
+            // Find the report data and navigate with it
+            const report = exploreReports1D.find(r => r._id === reportId);
+            if (report) {
+                const exploreResults = {
+                    parameterName: report.parameterName,
+                    parameterValues: report.parameterValues,
+                    results: report.results
+                };
+                navigate('/one-dimensional-simulation-results', { state: { exploreResults } });
+            }
+        } else {
+            // Find the report data and navigate with it
+            const report = exploreReports2D.find(r => r._id === reportId);
+            if (report) {
+                const exploreResults = {
+                    parameterName: report.parameterName,
+                    parameterName2: report.parameterName2,
+                    parameterValues: report.parameterValues,
+                    parameterValues2: report.parameterValues2,
+                    results: report.results
+                };
+                navigate('/two-dimensional-simulation-results', { state: { exploreResults } });
+            }
+        }
+    };
+
+    const handleDeleteExploreReport = async (reportId, type) => {
+        if (window.confirm('Are you sure you want to delete this exploration report?')) {
+            try {
+                await axios.delete(`http://localhost:8000/simulation/explore-report/${reportId}`);
+                if (type === '1D') {
+                    setExploreReports1D(exploreReports1D.filter(report => report._id !== reportId));
+                } else {
+                    setExploreReports2D(exploreReports2D.filter(report => report._id !== reportId));
+                }
+            } catch (error) {
+                console.error('Error deleting exploration report:', error);
+                setError('Failed to delete the exploration report. Please try again later.');
             }
         }
     };
@@ -558,6 +612,140 @@ function Dashboard() {
                     )}
                 </div>
             </div>
+            
+            {/* Exploration Reports Section - Only show for user's own reports */}
+            {ownerView === 'users' && (
+                <div className="explore-reports-row">
+                    {/* 1D Exploration Reports */}
+                    <div className="explore-reports-section explore-1d">
+                        <div className="explore-section-header">
+                            <span className="explore-badge">1D</span>
+                            <h2>One-Dimensional Explorations</h2>
+                        </div>
+                        {exploreReports1D.length === 0 ? (
+                            <div className="empty-state">
+                                <p>No 1D exploration reports yet.</p>
+                                <p className="empty-hint">Run a one-dimensional scenario exploration to see results here.</p>
+                            </div>
+                        ) : (
+                            <div className="explore-reports-list">
+                                {exploreReports1D.map(report => {
+                                    const numSteps = report.parameterValues?.length || 0;
+                                    const totalSimulations = numSteps * report.numSimulations;
+                                    const stepValues = report.parameterValues?.join(', ') || '';
+                                    // Check if parameter is event-related and extract event name
+                                    const isEventParam = report.parameterName?.includes('event-');
+                                    const eventName = report.eventName || '';
+                                    // Format parameter name more readably
+                                    const formatParamName = (name) => {
+                                        if (!name) return '';
+                                        return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                    };
+                                    const paramDisplayName = isEventParam && eventName 
+                                        ? `${formatParamName(report.parameterName)} - "${eventName}"`
+                                        : formatParamName(report.parameterName);
+                                    return (
+                                        <div key={report._id} className="explore-report-card explore-1d-card">
+                                            <div className="explore-report-header">
+                                                <h3>{report.name}</h3>
+                                                <span className="explore-type-tag">1D</span>
+                                            </div>
+                                            <div className="explore-report-details">
+                                                <p><strong>Parameter:</strong> {paramDisplayName}</p>
+                                                <p><strong>Values:</strong> {stepValues}</p>
+                                                <p><strong>Simulations per step:</strong> {report.numSimulations} <span className="total-sims">(total: {totalSimulations})</span></p>
+                                            </div>
+                                            <div className="explore-report-actions">
+                                                <button 
+                                                    onClick={() => handleViewExploreReport(report._id, '1D')}
+                                                    className="view-explore-button"
+                                                >
+                                                    View Report
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteExploreReport(report._id, '1D')}
+                                                    className="delete-explore-button"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 2D Exploration Reports */}
+                    <div className="explore-reports-section explore-2d">
+                        <div className="explore-section-header">
+                            <span className="explore-badge">2D</span>
+                            <h2>Two-Dimensional Explorations</h2>
+                        </div>
+                        {exploreReports2D.length === 0 ? (
+                            <div className="empty-state">
+                                <p>No 2D exploration reports yet.</p>
+                                <p className="empty-hint">Run a two-dimensional scenario exploration to see results here.</p>
+                            </div>
+                        ) : (
+                            <div className="explore-reports-list">
+                                {exploreReports2D.map(report => {
+                                    const numSteps1 = report.parameterValues?.length || 0;
+                                    const numSteps2 = report.parameterValues2?.length || 0;
+                                    const totalSimulations = numSteps1 * numSteps2 * report.numSimulations;
+                                    const stepValues1 = report.parameterValues?.join(', ') || '';
+                                    const stepValues2 = report.parameterValues2?.join(', ') || '';
+                                    // Check if parameters are event-related and extract event names
+                                    const isEventParam1 = report.parameterName?.includes('event-');
+                                    const isEventParam2 = report.parameterName2?.includes('event-');
+                                    const eventName1 = report.eventName || '';
+                                    const eventName2 = report.eventName2 || '';
+                                    // Format parameter name more readably
+                                    const formatParamName = (name) => {
+                                        if (!name) return '';
+                                        return name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                    };
+                                    const paramDisplayName1 = isEventParam1 && eventName1 
+                                        ? `${formatParamName(report.parameterName)} - "${eventName1}"`
+                                        : formatParamName(report.parameterName);
+                                    const paramDisplayName2 = isEventParam2 && eventName2 
+                                        ? `${formatParamName(report.parameterName2)} - "${eventName2}"`
+                                        : formatParamName(report.parameterName2);
+                                    return (
+                                        <div key={report._id} className="explore-report-card explore-2d-card">
+                                            <div className="explore-report-header">
+                                                <h3>{report.name}</h3>
+                                                <span className="explore-type-tag">2D</span>
+                                            </div>
+                                            <div className="explore-report-details">
+                                                <p><strong>Parameter 1:</strong> {paramDisplayName1}</p>
+                                                <p className="step-values"><strong>Values:</strong> {stepValues1}</p>
+                                                <p><strong>Parameter 2:</strong> {paramDisplayName2}</p>
+                                                <p className="step-values"><strong>Values:</strong> {stepValues2}</p>
+                                                <p><strong>Simulations per step:</strong> {report.numSimulations} <span className="total-sims">(total: {totalSimulations})</span></p>
+                                            </div>
+                                            <div className="explore-report-actions">
+                                                <button 
+                                                    onClick={() => handleViewExploreReport(report._id, '2D')}
+                                                    className="view-explore-button"
+                                                >
+                                                    View Report
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteExploreReport(report._id, '2D')}
+                                                    className="delete-explore-button"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             </div>
 
             {showShareMenu && shareScenario && (
